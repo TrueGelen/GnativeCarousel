@@ -162,19 +162,26 @@ class GnativeCarousel {
 			return elem
 		}
 
-		const sliderHeight = parseInt(this.getPropertyOfElement(this.sliderContainer, 'height'))
+		const sliderPaddingTop = parseInt(this.getPropertyOfElement(this.sliderContainer, 'padding-top'))
+		const sliderPaddingBottom = parseInt(this.getPropertyOfElement(this.sliderContainer, 'padding-bottom'))
+		const calculatedHeight = parseInt(this.getPropertyOfElement(this.sliderContainer, 'height'))
+		const sliderHeight = calculatedHeight <= (sliderPaddingTop + sliderPaddingBottom) ?
+			calculatedHeight - (sliderPaddingTop + sliderPaddingBottom) :
+			calculatedHeight
+
+		console.log(sliderPaddingTop, sliderPaddingBottom, calculatedHeight, sliderHeight)
 
 		const biggestElem = getBiggestInnerElement(this.staticItem, this.items[0])
 
-		if (sliderHeight >= biggestElem.height) {
-			if (sliderHeight < biggestElem.sum) {
+		if (sliderHeight < biggestElem.sum) {
+			if (sliderHeight < biggestElem.height && sliderHeight !== 0) {
+				throw new Error("a height of biggest inner element of slider is bigger then slider's height")
+			} else {
 				this.sizeOfSliderContainer.height = biggestElem.sum
 				const height = this.responsiveOptions.responsive ? `${biggestElem.sum / (window.innerWidth / 100)}vw` :
 					`${biggestElem.sum}px`
 				this.sliderContainer.style.height = height
 			}
-		} else {
-			throw new Error("a height of biggest inner element of slider is bigger then slider's height")
 		}
 	}
 

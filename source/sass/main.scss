@@ -54,15 +54,15 @@ a {
 }
 
 .firstExample__slider{
-	position: absolute;
+	/* position: absolute;
 	top: 50%;
 	left: 50%;
-	transform: translate(-50%, -50%);
-	/* position: relative;
-	margin: 0 auto; */
-	// padding: 0 30px;
+	transform: translate(-50%, -50%); */
+	position: relative;
+	margin: 0 auto;
+	// padding: 30px 0px;
 	// width: 867.6px; //810
-	height: 710px;//needs to add +20*2 for box-shadow
+	// height: 710px;//needs to add +20*2 for box-shadow
 	
 
 	/* @include lg1360-block{
