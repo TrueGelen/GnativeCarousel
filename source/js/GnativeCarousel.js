@@ -21,15 +21,20 @@ window.addEventListener('load', () => {
 	isNodeElem(elems)*/
 
 	new GnativeCarousel({
+		animationTime: 400,
 		sliderContainer: '.firstExample .container .GnativeCarousel',
 		itemsContainer: '.firstExample .container .GnativeCarousel .GnativeCarousel__itemsContainer',
 		staticItem: '.firstExample .container .GnativeCarousel .GnativeCarousel__staticItem',
 		btnsContainer: '.firstExample .container .GnativeCarousel .GnativeCarousel__buttons',
 		btnNext: '.firstExample .container .GnativeCarousel .GnativeCarousel__buttons .GnativeCarousel__next',
 		btnPrev: '.firstExample .container .GnativeCarousel .GnativeCarousel__buttons .GnativeCarousel__prev',
-		animationTime: 400,
-		responsive: true,
-		breakpoints: [1100, 768]
+		itemsOnSide: 5,
+		adaptive: true,
+		breakpoints: {
+			'1100': { itemsOnSide: 4 },
+			'960': { itemsOnSide: 3, responsive: true },
+			'768': { itemsOnSide: 2, responsive: true }
+		}
 	}).createSlider()
 })
 
@@ -43,14 +48,16 @@ class GnativeCarousel {
 			btnsContainer: undefined,
 			btnNext: undefined,
 			btnPrev: undefined,
-			responsive: false,
-			breakpoints: [],
+			itemsOnSide: 3,
+			adaptive: false,
+			responsive: true,
+			breakpoints: undefined,
 		}
 
 		this.finalSettings = this.mergeSettings(this.defaultSettings, settings)
 
 		//for rebuilding Slider on resize
-		this.flagForRebuilding = null
+		this.flagForRebuilding = 'large'
 
 		//table of virtual positions which is filled in the setTableOfPositions() {width, height, left, zIndex, invert}
 		this.tableOfPositions = {}
@@ -59,11 +66,18 @@ class GnativeCarousel {
 		//This is filled in setTableOfSteps(). 
 		//{stepWidth: { toPrev: null, toNext: null }, stepHeight: { ..., ...},stepLeft: {...,...},stepInvert:{...,...}
 		this.tableOfSteps = {}
-		//
+		//time options for animation. It uses in this.animationBehavior()
 		this.timeOptions = {
 			animationTime: this.finalSettings.animationTime,
 			interval: 5,
 			perToRight: 20
+		}
+
+		//setResponsiveOptions
+		this.responsiveOptions = {
+			responsive: !this.finalSettings.adaptive,
+			adaptive: this.finalSettings.adaptive,
+			itemsOnSide: this.finalSettings.itemsOnSide
 		}
 
 		//for swipe functions: getFirstTouch(), getTouchEnd(); and listeners in setEventListeners()
@@ -73,6 +87,12 @@ class GnativeCarousel {
 		//for the stack of calls
 		this.stackNext = 0
 		this.stackPrev = 0
+
+		//it sets in setSliderHeight() setSliderWidth()
+		this.sizeOfSliderContainer = {
+			height: null,
+			width: null
+		}
 
 		this.sliderContainer = document.querySelector(this.finalSettings.sliderContainer)
 		this.itemsContainer = document.querySelector(this.finalSettings.itemsContainer)
@@ -96,43 +116,138 @@ class GnativeCarousel {
 			return element.style[property]
 	}
 
-	setParentHeight() {
-		const getBiggestBoxShadowX = (...elems) => {
-			const arrOfValueX = elems.map(nodeElem => {
-				const value = parseInt(this.getPropertyOfElement(nodeElem, 'box-shadow').split('px ')[2])
-				if (typeof value === 'number' && !isNaN(value))
-					return value
-				else
-					return 0
-			})
-			return Math.max.apply(null, arrOfValueX)
-		}
-
-		const parentHeight = parseInt(this.getPropertyOfElement(this.sliderContainer.parentNode, 'height'))
-		const sliderContainerHeight = parseInt(this.getPropertyOfElement(this.sliderContainer, 'height'))
-		const boxShadowX = getBiggestBoxShadowX(this.sliderContainer, this.itemsContainer, this.staticItem) * 2
-
-		if (parentHeight < sliderContainerHeight + boxShadowX)
-			this.sliderContainer.parentNode.style.height = `${sliderContainerHeight + boxShadowX}px`
-	}
-
 	mergeSettings(defaultSettings, settings) {
 		return Object.assign(defaultSettings, settings)
 	}
 
+	setResponsiveOptions() {
+		for (let point in this.finalSettings.breakpoints) {
+			if (window.innerWidth < parseInt(point)) {
+				this.responsiveOptions = Object.assign(this.responsiveOptions, this.finalSettings.breakpoints[point])
+				this.flagForRebuilding = point
+				console.log(point, ':', this.responsiveOptions)
+				return true
+			}
+		}
+		this.responsiveOptions = {
+			responsive: !this.finalSettings.adaptive,
+			adaptive: this.finalSettings.adaptive,
+			itemsOnSide: this.finalSettings.itemsOnSide
+		}
+
+		console.log(this.responsiveOptions)
+	}
+
+	setSliderHeight() {
+		const getBiggestInnerElement = (...elems) => {
+
+			let elem = { sum: 0 }
+
+			elems.forEach(nodeElem => {
+				if (this.isNode(nodeElem)) {
+					const boxShadow = isNaN(parseInt(this.getPropertyOfElement(nodeElem, 'box-shadow').split('px ')[2]) * 2) ?
+						0 :
+						parseInt(this.getPropertyOfElement(nodeElem, 'box-shadow').split('px ')[2]) * 2
+
+					const height = parseInt(this.getPropertyOfElement(nodeElem, 'height'))
+
+					const sum = boxShadow + height
+
+					if ((typeof boxShadow === 'number' && !isNaN(boxShadow)) && (typeof height === 'number' && !isNaN(height)))
+						if (sum > elem.sum)
+							elem = { boxShadow, height, sum: boxShadow + height }
+				}
+			})
+
+			return elem
+		}
+
+		const sliderHeight = parseInt(this.getPropertyOfElement(this.sliderContainer, 'height'))
+
+		const biggestElem = getBiggestInnerElement(this.staticItem, this.items[0])
+
+		if (sliderHeight >= biggestElem.height) {
+			if (sliderHeight < biggestElem.sum) {
+				this.sizeOfSliderContainer.height = biggestElem.sum
+				const height = this.responsiveOptions.responsive ? `${biggestElem.sum / (window.innerWidth / 100)}vw` :
+					`${biggestElem.sum}px`
+				this.sliderContainer.style.height = height
+			}
+		} else {
+			throw new Error("a height of biggest inner element of slider is bigger then slider's height")
+		}
+	}
+
+	setSliderWidth() {
+		//static item
+		const staticItemWidth = parseInt(this.getPropertyOfElement(this.staticItem, 'width'))
+		const staticItemBoxShadow = isNaN(parseInt(this.getPropertyOfElement(this.staticItem, 'box-shadow').split('px ')[2]) * 2) ?
+			0 :
+			parseInt(this.getPropertyOfElement(this.staticItem, 'box-shadow').split('px ')[2]) * 2
+		const sumWidthOfStaticItem = staticItemWidth + staticItemBoxShadow
+
+		//items container
+		let itemWidth = this.items[0].getBoundingClientRect().width
+		itemWidth = itemWidth - (itemWidth / 100 * 15)
+
+		let totalWidth = itemWidth / 100 * 60 + this.items[0].getBoundingClientRect().width / 2
+		for (let i = 0; i < this.responsiveOptions.itemsOnSide - 1; i++) {
+			itemWidth = itemWidth - (itemWidth / 100 * 5)
+			totalWidth += itemWidth / 100 * 15
+		}
+		totalWidth = totalWidth * 2
+
+		//get biggest width
+		const biggestWidth = Math.max(sumWidthOfStaticItem, totalWidth)
+
+		//set width to slider container and set width to this.sizeOfSliderContainer
+		this.sizeOfSliderContainer.width = biggestWidth
+		const width = this.responsiveOptions.responsive ? `${biggestWidth / (window.innerWidth / 100)}vw` :
+			`${biggestWidth}px`
+		this.sliderContainer.style.width = width
+	}
+
+	setParentHeight() {
+		if (this.getPropertyOfElement(this.sliderContainer, 'position') === 'absolute') {
+			const heightOfParent = this.getPropertyOfElement(this.sliderContainer.parentNode, 'height')
+			const heightOfSlider = this.sizeOfSliderContainer.height
+			if (parseInt(heightOfParent) < heightOfSlider && this.responsiveOptions.responsive) {
+				if (parseInt(heightOfParent) !== 0) {
+					console.error(`The parent of the slider has a height which is less than the height of the slider. The parent height was changed to "${heightOfSlider / (window.innerWidth / 100)}vw", and min-height was changed to "${heightOfParent}"`)
+					this.sliderContainer.parentNode.style.minHeight = heightOfParent
+				}
+				this.sliderContainer.parentNode.style.height = `${heightOfSlider / (window.innerWidth / 100)}vw`
+			}
+			else if (parseInt(heightOfParent) < heightOfSlider && !this.responsiveOptions.responsive) {
+				if (parseInt(heightOfParent) !== 0) {
+					console.error(`The parent of the slider has a height which is less than the height of the slider. The parent height was changed to "${heightOfSlider}px", and min-height was changed to "${heightOfParent}"`)
+					this.sliderContainer.parentNode.style.minHeight = heightOfParent
+				}
+				this.sliderContainer.parentNode.style.height = `${heightOfSlider}px`
+			}
+		}
+	}
+
 	//reset all js style which were added to elements before new building on resize
 	resetJsStyles() {
-		//for items 
-		//[width, height, left, zIndex, filter]
-		//for staticItem
-		//[left]
-		//for btnsContainer 
-		//[zIndex]
-		//for parent of slider
-		//[height]
+		//for staticItem [left, top, width, height]
 		this.staticItem.style.left = ''
+		this.staticItem.style.top = ''
+		this.staticItem.style.width = ''
+		this.staticItem.style.height = ''
+
+		//for btnsContainer [zIndex]
 		this.btnsContainer.style.zIndex = ''
 
+		//for parent of slider [height, minHeight]
+		this.sliderContainer.parentNode.style.height = ''
+		this.sliderContainer.parentNode.style.minHeight = ''
+
+		//fot slider container [height, width]
+		this.sliderContainer.style.height = ''
+		this.sliderContainer.style.width = ''
+
+		//for items [width, height, left, zIndex, filter]
 		for (let i = 0; i < this.items.length; i++) {
 			this.items[i].style.width = ''
 			this.items[i].style.height = ''
@@ -143,24 +258,35 @@ class GnativeCarousel {
 	}
 
 	centeringTheStaticItem() {
-		let containerWidth = this.itemsContainer.getBoundingClientRect().width
+		const containerWidth = this.sizeOfSliderContainer.width
 		const staticItemWidth = this.staticItem.getBoundingClientRect().width
 		const left = ((containerWidth - staticItemWidth) / 2) / containerWidth * 100
 		this.staticItem.style.left = `${left}%`
+
+		const containerHeight = this.sizeOfSliderContainer.height
+		const staticItemHeight = this.staticItem.getBoundingClientRect().height
+		const top = ((containerHeight - staticItemHeight) / 2) / containerHeight * 100
+		this.staticItem.style.top = `${top}%`
+
+		//set width and height
+		const height = `${staticItemHeight / containerHeight * 100}%`
+		const width = `${staticItemWidth / containerWidth * 100}%`
+		this.staticItem.style.height = height
+		this.staticItem.style.width = width
 	}
 
-	//for this.tableOfPositions
+	//for this.tableOfPositions and sizes
 	setTableOfPositions() {
-		const containerWidth = this.itemsContainer.getBoundingClientRect().width
-		const containerHeight = this.itemsContainer.getBoundingClientRect().height
+		const containerWidth = this.sizeOfSliderContainer.width
+		const containerHeight = this.sizeOfSliderContainer.height
 
 		//getting any element
-		const itemWidth = this.items[0].getBoundingClientRect().width
+		const itemWidth = this.items[0].getBoundingClientRect().width//?
 		const mainElement = Math.floor(this.items.length / 2)
-		this.btnsContainer.style.zIndex = `${mainElement + 3}`
+		this.btnsContainer.style.zIndex = `${mainElement + this.responsiveOptions.itemsOnSide}` //todo rewrite it in the its own function
 
 		this.tableOfPositions[mainElement] = {
-			width: itemWidth / containerWidth * 100,
+			width: itemWidth / containerWidth * 100, //?
 			height: this.items[0].getBoundingClientRect().height / containerHeight * 100,
 			left: ((containerWidth - itemWidth) / 2) / containerWidth * 100,
 			zIndex: mainElement + 2,
@@ -168,6 +294,7 @@ class GnativeCarousel {
 			invert: 0
 		}
 
+		//first part of positions
 		for (let i = mainElement - 1; i >= 0; i--) {
 			let width
 			let height
@@ -175,7 +302,6 @@ class GnativeCarousel {
 			let zIndex = i + 1
 			let invert
 
-			//first part of positions
 			if (mainElement - 1 === i) {
 				this.staticItem.style.zIndex = mainElement + 1
 				width = this.tableOfPositions[mainElement].width - (this.tableOfPositions[mainElement].width / 100 * 15)
@@ -183,11 +309,17 @@ class GnativeCarousel {
 				left = this.tableOfPositions[mainElement].left - (width / 100 * 60)
 				invert = 0.05
 			}
-			else {
+			else if (mainElement - this.responsiveOptions.itemsOnSide <= i) {
 				width = this.tableOfPositions[i + 1].width - (this.tableOfPositions[i + 1].width / 100 * 5)
 				height = this.tableOfPositions[i + 1].height - (this.tableOfPositions[i + 1].height / 100 * 5)
 				left = this.tableOfPositions[i + 1].left - (width / 100 * 15)
 				invert = this.tableOfPositions[i + 1].invert + 0.05
+			}
+			else {
+				width = this.tableOfPositions[mainElement - this.responsiveOptions.itemsOnSide].width
+				height = this.tableOfPositions[mainElement - this.responsiveOptions.itemsOnSide].height
+				left = this.tableOfPositions[mainElement - this.responsiveOptions.itemsOnSide].left
+				invert = this.tableOfPositions[mainElement - this.responsiveOptions.itemsOnSide].invert
 			}
 
 			this.tableOfPositions[i] = { width, height, left, zIndex, invert }
@@ -207,11 +339,17 @@ class GnativeCarousel {
 				left = this.tableOfPositions[mainElement].left + this.tableOfPositions[mainElement].width - (width / 100 * 40)
 				invert = 0.1
 			}
-			else {
+			else if (mainElement + this.responsiveOptions.itemsOnSide >= i) {
 				width = this.tableOfPositions[i - 1].width - (this.tableOfPositions[i - 1].width / 100 * 5)
 				height = this.tableOfPositions[i - 1].height - (this.tableOfPositions[i - 1].height / 100 * 5)
 				left = this.tableOfPositions[i - 1].left + this.tableOfPositions[i - 1].width - (width / 100 * 85)
 				invert = this.tableOfPositions[i - 1].invert + 0.1
+			}
+			else {
+				width = this.tableOfPositions[mainElement + this.responsiveOptions.itemsOnSide].width
+				height = this.tableOfPositions[mainElement + this.responsiveOptions.itemsOnSide].height
+				left = this.tableOfPositions[mainElement + this.responsiveOptions.itemsOnSide].left
+				invert = this.tableOfPositions[mainElement + this.responsiveOptions.itemsOnSide].invert
 			}
 
 			this.tableOfPositions[i] = { width, height, left, zIndex, invert }
@@ -416,12 +554,22 @@ class GnativeCarousel {
 	}
 
 	createSlider() {
+		//get data about container and parent and set correct height and width for them
+		this.setResponsiveOptions()
+		this.setSliderHeight()
+		this.setSliderWidth()
 		this.setParentHeight()
-		this.centeringTheStaticItem()
+
+		//het data for items
 		this.setTableOfPositions()
 		this.setItemsMap()
 		this.setTableOfSteps()
+
+		//then we build slider and elements
+		this.centeringTheStaticItem()
 		this.alignmentOfItems()
+
+		//then we set event listeners
 		this.setEventListeners()
 	}
 
@@ -439,7 +587,6 @@ class GnativeCarousel {
 
 	//increase stack of calls for a next slide and then call stackWatcher()
 	createClickNext = () => {
-		console.log(1)
 		this.stackNext++
 		if (this.stackNext === 1 && this.stackPrev === 0) {
 			this.stackWatcher()
@@ -483,29 +630,28 @@ class GnativeCarousel {
 	/*== touch event for mobile ==*/
 
 	setEventListeners() {
-		//if slider is responsive
-		if (this.finalSettings.responsive) {
-			window.addEventListener('resize', () => {
-				for (let i = this.finalSettings.breakpoints.length - 1; i >= 0; i--) {
-					if (this.finalSettings.breakpoints[i] > window.innerWidth) {
-						if (this.flagForRebuilding !== this.finalSettings.breakpoints[i].toString()) {
-							this.flagForRebuilding = this.finalSettings.breakpoints[i].toString()
-							this.resetJsStyles()
-							this.createSlider()
-							return false
-						}
-						if (this.flagForRebuilding === this.finalSettings.breakpoints[i].toString()) {
-							return false
-						}
-					} else if (i === 0 && this.flagForRebuilding !== 'large') {
-						this.flagForRebuilding = 'large'
+		window.addEventListener('resize', () => {
+			const arrOfPoints = Object.keys(this.finalSettings.breakpoints)
+			for (let point = 0; point < arrOfPoints.length; point++) {
+				console.log("I'm in now iter")
+				if (arrOfPoints[point] > window.innerWidth) {
+					if (this.flagForRebuilding.toString() !== arrOfPoints[point].toString()) {
+						this.flagForRebuilding = arrOfPoints[point]
 						this.resetJsStyles()
 						this.createSlider()
+						console.log("I'm in rebuilding", "flag: ", this.flagForRebuilding)
 						return true
 					}
+					return true
+				} else if (point === arrOfPoints.length - 1 && this.flagForRebuilding.toString() !== 'large') {
+					this.flagForRebuilding = 'large'
+					this.resetJsStyles()
+					this.createSlider()
+					console.log("I'm in large", "flag: ", this.flagForRebuilding)
+					return true
 				}
-			})
-		}
+			}
+		})
 
 		this.itemsContainer.addEventListener('touchstart', this.getFirstTouch)
 		this.itemsContainer.addEventListener('touchend', this.getTouchEnd)
