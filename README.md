@@ -3,7 +3,7 @@
 
 Usage
 -----------------------------
-#### The expamle:
+#### The expamle js:
 ````js
 new GnativeCarousel({
 		mainElement: {
@@ -11,21 +11,49 @@ new GnativeCarousel({
 			keepOrder: true
 		},
 		animationTime: 300,
-		sliderContainer: '.firstExample .container .GnativeCarousel',
-		itemsContainer: '.firstExample .container .GnativeCarousel .GnativeCarousel__itemsContainer',
-		staticItem: '.firstExample .container .GnativeCarousel .GnativeCarousel__staticItem',
-		btnsContainer: '.firstExample .container .GnativeCarousel .GnativeCarousel__buttons',
-		btnNext: '.firstExample .container .GnativeCarousel .GnativeCarousel__buttons .GnativeCarousel__next',
-		btnPrev: '.firstExample .container .GnativeCarousel .GnativeCarousel__buttons .GnativeCarousel__prev',
+		sliderContainer: '.firstExample .GnativeCarousel',
+		itemsContainer: '.firstExample .GnativeCarousel .GnativeCarousel__itemsContainer',
+		staticItem: '.firstExample.GnativeCarousel .GnativeCarousel__staticItem',
+		btnsContainer: '.firstExample .GnativeCarousel .GnativeCarousel__buttons',
+		btnNext: '.firstExample .GnativeCarousel .GnativeCarousel__buttons .GnativeCarousel__next',
+		btnPrev: '.firstExample .GnativeCarousel .GnativeCarousel__buttons .GnativeCarousel__prev',
 		itemsOnSide: 5,
 		adaptive: true,
 		breakpoints: {
 			'1100': { itemsOnSide: 4 },
 			'960': { itemsOnSide: 3, responsive: true },
-			'768': { itemsOnSide: 2, responsive: true },
+			'768': { itemsOnSide: 2 },
 		}
 	}).createSlider()
   ````
+  
+  #### The expamle HTML:
+  ````html
+<div class="GnativeCarousel">
+	<img class="GnativeCarousel__staticItem" src="./path" alt="layout">
+	<div class="GnativeCarousel__itemsContainer">
+		<img src="./img/slider/1.png" class="first" alt="img1">
+		<img src="./img/slider/2.png" alt="img2">
+		<img src="./img/slider/3.png" alt="img3">
+		<img src="./img/slider/4.png" alt="img4">
+		<img src="./img/slider/5.png" alt="img5">
+		<img src="./img/slider/6.png" alt="img6">
+		<img src="./img/slider/7.png" alt="img7">
+		<img src="./img/slider/8.png" alt="img8">
+		<img src="./img/slider/9.png" alt="img9">
+		<img src="./img/slider/10.png" alt="img10">
+		<img src="./img/slider/11.png" alt="img11">
+	</div>
+	<div class="GnativeCarousel__buttons">
+		<div class="GnativeCarousel__button GnativeCarousel__prev">
+			Previous
+		</div>
+		<div class="GnativeCarousel__button GnativeCarousel__next">
+			Next
+		</div>
+	</div>
+</div>
+````
   
   ### Default settings
   
