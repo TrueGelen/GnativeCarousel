@@ -60,16 +60,6 @@ a {
 	transform: translate(-50%, -50%); */
 	position: relative;
 	margin: 0 auto;
-	// padding: 30px 0px;
-	// width: 867.6px; //810
-	// height: 710px;//needs to add +20*2 for box-shadow
-	
-
-	/* @include lg1360-block{
-		width: 688px;
-		height: 603px;
-		right: 0;
-	} */
 
 	@include lg-block{
 		width: 584px;
@@ -88,8 +78,6 @@ a {
 }
 
 .GnativeCarousel{
-	// background-color: rgba(0, 0, 0, 0.63);
-	// border: 1px solid yellow;
 
 	&__staticItem{
 		position: absolute;
@@ -97,13 +85,8 @@ a {
 		border-radius: 45px;
 		background-color: rgba(85, 85, 85, 0.445);
 		box-shadow: 0px 0px 40px 5px rgba(85, 85, 85, 0.788);
-		width: 340px; //phone
-		height: 710px;	//710px; //phone
-	
-		/* @include lg1360-block{
-			width: 289px;
-			height: 603px;
-		} */
+		width: 340px;
+		height: 710px;
 	
 		@include lg-block{
 			width: 245px;
@@ -130,16 +113,10 @@ a {
 		height: 100%;
 	
 		img{
-			// box-shadow: 0px 0px 400px 1000px gray;
 			position: absolute;
 			border-radius: 30px;
 			width: 320px;
 			height: 645px;
-	
-			/* @include lg1360-block{
-				width: 272px;
-				height: 548px;
-			} */
 	
 			@include lg-block{
 				width: 231px;
@@ -187,7 +164,7 @@ a {
 		cursor: pointer;
 		transition: box-shadow .2s, background-color .2s;
 	
-		@include xxs-block{
+		@include xs-block{
 			width: 60px;
 			height: 60px;
 		}

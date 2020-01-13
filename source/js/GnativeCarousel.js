@@ -1,44 +1,4 @@
-import 'regenerator-runtime'
-
-window.addEventListener('load', () => {
-
-	/* function isNodeElem(elems) {
-		for (let key in elems) {
-			// console.log(elem)
-			let node = document.querySelector(elems[key])
-			console.log(node)
-		}
-	}
-
-	const elems = {
-		itemsContainer: '.firstExample .container .GnativeCarousel .GnativeCarousel__itemsContainer',
-		staticItem: '.firstExample .container .GnativeCarousel .GnativeCarousel__staticItem',
-		btnsContainer: '.firstExample .container .GnativeCarousel .GnativeCarousel__buttons',
-		btnNext: '.firstExample .container .GnativeCarousel .GnativeCarousel__buttons .GnativeCarousel__next',
-		btnPrev: '.firstExample .container .GnativeCarousel .GnativeCarousel__buttons .GnativeCarousel__prev'
-	} 
-
-	isNodeElem(elems)*/
-
-	new GnativeCarousel({
-		animationTime: 400,
-		sliderContainer: '.firstExample .container .GnativeCarousel',
-		itemsContainer: '.firstExample .container .GnativeCarousel .GnativeCarousel__itemsContainer',
-		staticItem: '.firstExample .container .GnativeCarousel .GnativeCarousel__staticItem',
-		btnsContainer: '.firstExample .container .GnativeCarousel .GnativeCarousel__buttons',
-		btnNext: '.firstExample .container .GnativeCarousel .GnativeCarousel__buttons .GnativeCarousel__next',
-		btnPrev: '.firstExample .container .GnativeCarousel .GnativeCarousel__buttons .GnativeCarousel__prev',
-		itemsOnSide: 5,
-		adaptive: true,
-		breakpoints: {
-			'1100': { itemsOnSide: 4 },
-			'960': { itemsOnSide: 3, responsive: true },
-			'768': { itemsOnSide: 2, responsive: true }
-		}
-	}).createSlider()
-})
-
-class GnativeCarousel {
+export default class GnativeCarousel {
 	constructor(settings) {
 		this.defaultSettings = {
 			animationTime: 300,
@@ -48,6 +8,10 @@ class GnativeCarousel {
 			btnsContainer: undefined,
 			btnNext: undefined,
 			btnPrev: undefined,
+			mainElement: {
+				class: undefined,
+				keepOrder: false
+			},
 			itemsOnSide: 3,
 			adaptive: false,
 			responsive: true,
@@ -80,9 +44,16 @@ class GnativeCarousel {
 			itemsOnSide: this.finalSettings.itemsOnSide
 		}
 
-		//for swipe functions: getFirstTouch(), getTouchEnd(); and listeners in setEventListeners()
-		this.firstTouchX = 0
-		this.firstTouchY = 0
+		//for responsive swipe on a mouse and a touch event
+		this.startPosition = null
+		this.animation = {
+			currentStep: null,
+			leftX: null,
+			widthX: null,
+			heightX: null,
+			inAnimationFlag: false,
+			reverseFlag: false
+		}
 
 		//for the stack of calls
 		this.stackNext = 0
@@ -102,6 +73,17 @@ class GnativeCarousel {
 		this.btnsContainer = document.querySelector(this.finalSettings.btnsContainer)
 		this.btnNext = document.querySelector(this.finalSettings.btnNext)
 		this.btnPrev = document.querySelector(this.finalSettings.btnPrev)
+	}
+
+	doSlide(element, direction) {
+		if (direction === 'next')
+			element.addEventListener('click', () => {
+				this.createClickNext()
+			})
+		else if (direction === 'prev')
+			element.addEventListener('click', () => {
+				this.createClickPrev()
+			})
 	}
 
 	isNode(node) {
@@ -125,7 +107,6 @@ class GnativeCarousel {
 			if (window.innerWidth < parseInt(point)) {
 				this.responsiveOptions = Object.assign(this.responsiveOptions, this.finalSettings.breakpoints[point])
 				this.flagForRebuilding = point
-				console.log(point, ':', this.responsiveOptions)
 				return true
 			}
 		}
@@ -135,9 +116,40 @@ class GnativeCarousel {
 			itemsOnSide: this.finalSettings.itemsOnSide
 		}
 
-		console.log(this.responsiveOptions)
+		// console.log(this.responsiveOptions)
 	}
 
+	buildMainElement() {
+		if (typeof this.finalSettings.mainElement.class === 'string') {
+			const classNm = (this.finalSettings.mainElement.class[0] === '.') ? this.finalSettings.mainElement.class : `.${this.finalSettings.mainElement.class}`
+			const mainElem = this.itemsContainer.querySelector(classNm)
+
+			if (this.isNode(mainElem)) {
+				const indexOfMaintEl = Math.floor(this.items.length / 2)
+
+				if (this.finalSettings.mainElement.keepOrder) {
+					let i = (indexOfMaintEl === this.items.length / 2) ? 1 : 0
+					while (i <= indexOfMaintEl) {
+						this.itemsContainer.append(this.items[0])
+						i++
+					}
+
+				} else {
+					this.items[indexOfMaintEl].after(mainElem)
+				}
+			}
+		}
+	}
+
+	makeBoxSizing() {
+		if (this.getPropertyOfElement(this.sliderContainer, 'box-sizing') !== 'border-box')
+			this.sliderContainer.style.boxSizing = 'border-box'
+	}
+
+	//function for finding a biggest inner element and define height of the slider and
+	//set a value for the this.sizeOfSliderContainer object
+	//it needs for finding mistakes with sizes, both in the slider and outside it
+	//and set a height of a parent if the slider has position absolute in function setParentHeight()
 	setSliderHeight() {
 		const getBiggestInnerElement = (...elems) => {
 
@@ -162,15 +174,17 @@ class GnativeCarousel {
 			return elem
 		}
 
-		const sliderPaddingTop = parseInt(this.getPropertyOfElement(this.sliderContainer, 'padding-top'))
-		const sliderPaddingBottom = parseInt(this.getPropertyOfElement(this.sliderContainer, 'padding-bottom'))
+		//finding actual height of the slider
+		const sliderPaddingY = parseInt(this.getPropertyOfElement(this.sliderContainer, 'padding-top'))
+			+ parseInt(this.getPropertyOfElement(this.sliderContainer, 'padding-bottom'))
+		const sliderBorderY = parseInt(this.getPropertyOfElement(this.sliderContainer, 'border-top'))
+			+ parseInt(this.getPropertyOfElement(this.sliderContainer, 'border-bottom'))
 		const calculatedHeight = parseInt(this.getPropertyOfElement(this.sliderContainer, 'height'))
-		const sliderHeight = calculatedHeight <= (sliderPaddingTop + sliderPaddingBottom) ?
-			calculatedHeight - (sliderPaddingTop + sliderPaddingBottom) :
+		const sliderHeight = (calculatedHeight <= sliderPaddingY + sliderBorderY) ?
+			calculatedHeight - (sliderPaddingY + sliderBorderY) :
 			calculatedHeight
 
-		console.log(sliderPaddingTop, sliderPaddingBottom, calculatedHeight, sliderHeight)
-
+		//determine a biggestElem
 		const biggestElem = getBiggestInnerElement(this.staticItem, this.items[0])
 
 		if (sliderHeight < biggestElem.sum) {
@@ -197,15 +211,15 @@ class GnativeCarousel {
 		let itemWidth = this.items[0].getBoundingClientRect().width
 		itemWidth = itemWidth - (itemWidth / 100 * 15)
 
-		let totalWidth = itemWidth / 100 * 60 + this.items[0].getBoundingClientRect().width / 2
+		let itemsContainerWidth = itemWidth / 100 * 60 + this.items[0].getBoundingClientRect().width / 2
 		for (let i = 0; i < this.responsiveOptions.itemsOnSide - 1; i++) {
 			itemWidth = itemWidth - (itemWidth / 100 * 5)
-			totalWidth += itemWidth / 100 * 15
+			itemsContainerWidth += itemWidth / 100 * 15
 		}
-		totalWidth = totalWidth * 2
+		itemsContainerWidth = itemsContainerWidth * 2
 
 		//get biggest width
-		const biggestWidth = Math.max(sumWidthOfStaticItem, totalWidth)
+		const biggestWidth = Math.max(sumWidthOfStaticItem, itemsContainerWidth)
 
 		//set width to slider container and set width to this.sizeOfSliderContainer
 		this.sizeOfSliderContainer.width = biggestWidth
@@ -254,13 +268,14 @@ class GnativeCarousel {
 		this.sliderContainer.style.height = ''
 		this.sliderContainer.style.width = ''
 
-		//for items [width, height, left, zIndex, filter]
+		//for items [width, height, left, zIndex, filter, cursor]
 		for (let i = 0; i < this.items.length; i++) {
 			this.items[i].style.width = ''
 			this.items[i].style.height = ''
 			this.items[i].style.left = ''
 			this.items[i].style.zIndex = ''
 			this.items[i].style.filter = ''
+			this.items[i].style.cursor = ''
 		}
 	}
 
@@ -290,7 +305,9 @@ class GnativeCarousel {
 		//getting any element
 		const itemWidth = this.items[0].getBoundingClientRect().width//?
 		const mainElement = Math.floor(this.items.length / 2)
-		this.btnsContainer.style.zIndex = `${mainElement + this.responsiveOptions.itemsOnSide}` //todo rewrite it in the its own function
+
+		//todo rewrite it in the its own function
+		this.btnsContainer.style.zIndex = `${mainElement + this.responsiveOptions.itemsOnSide}`
 
 		this.tableOfPositions[mainElement] = {
 			width: itemWidth / containerWidth * 100, //?
@@ -362,7 +379,7 @@ class GnativeCarousel {
 			this.tableOfPositions[i] = { width, height, left, zIndex, invert }
 		}
 
-		console.log('setTableOfPosition', this.tableOfPositions)
+		// console.log('setTableOfPosition', this.tableOfPositions)
 	}
 
 	//for this.itemsMap
@@ -370,7 +387,7 @@ class GnativeCarousel {
 		for (let i = 0; i < this.items.length; i++) {
 			this.itemsMap[i] = i
 		}
-		console.log('setItemsMap', this.itemsMap)
+		// console.log('setItemsMap', this.itemsMap)
 	}
 
 	//for this.tableOfSteps
@@ -415,7 +432,7 @@ class GnativeCarousel {
 			this.tableOfSteps[i] = buffer
 		}
 
-		console.log('setTableOfSteps', this.tableOfSteps)
+		// console.log('setTableOfSteps', this.tableOfSteps)
 	}
 
 	//building actual elements into virtual positions by tableOfPosition
@@ -426,14 +443,52 @@ class GnativeCarousel {
 			this.items[i].style.left = `${this.tableOfPositions[i].left}%`
 			this.items[i].style.zIndex = `${this.tableOfPositions[i].zIndex}`
 			this.items[i].style.filter = `invert(${this.tableOfPositions[i].invert})`
+			this.items[i].style.cursor = 'pointer'
 		}
 	}
 
-	animationBehavior(direction) {
+	//function for switching between responsive swipe and an animation
+	setAnimationOptions(settings) {
+		const mainElement = Math.floor(this.items.length / 2)
+		//getting a desired element depending on a direction
+		const numOfEl = settings.direction === 'toPrev' ? mainElement - 1 : mainElement + 1
+
+		if (settings.refreshFlag && !settings.reverseFlag) {
+			this.animation = {
+				//to save direction for the animationBehavior when reverseFlag: true
+				direction: settings.direction,
+				//correct current step for responsive swipe
+				currentStep: 0,
+				//coordinates and sizes of nonlinear elements
+				leftX: this.tableOfPositions[numOfEl].left,
+				widthX: this.tableOfPositions[numOfEl].width,
+				heightX: this.tableOfPositions[numOfEl].height,
+				inAnimationFlag: settings.hasOwnProperty('inAnimationFlag') ? settings.inAnimationFlag : false,
+				reverseFlag: false
+			}
+		}
+		else
+			//updating data
+			this.animation = Object.assign(this.animation, settings)
+	}
+
+	animationBehavior(direction, singleCall = false) {
+		//the flag defining of start reverse steps in a animation
+		let reverseFlag = false
+		//if we started to swipe the slider using a responsive swipe and a actual direction(direction)
+		// doesn't match a saved direction(this.animation.direction) the reverseFlag is true
+		if (this.animation.inAnimationFlag) {
+			reverseFlag = (direction === this.animation.direction) ? false : true
+			direction = (direction === this.animation.direction) ? direction : this.animation.direction
+		}
+
 		return new Promise((resolve) => {
 			//changing virtual positions numbers for actual elements in itemsMap after animation
 			//and setting items on correct virtual positions
 			const callback = (direction) => {
+
+				this.setAnimationOptions({ refreshFlag: true })
+
 				if (direction === 'toPrev') {
 					let firstForLast = this.itemsMap[0];
 					for (let i = 0; i < this.items.length; i++) {
@@ -445,7 +500,7 @@ class GnativeCarousel {
 						(i === 0) ? this.itemsMap[i] = lastForFirst : this.itemsMap[i] = this.itemsMap[i - 1]
 					}
 				}
-				console.log('animationBehavior itemsMap{fact: virt}: ', this.itemsMap)
+				// console.log('animationBehavior itemsMap{fact: virt}: ', this.itemsMap)
 
 				for (let i = 0; i < this.items.length; i++) {
 					this.items[i].style.width = `${this.tableOfPositions[this.itemsMap[i]].width}%`
@@ -460,76 +515,140 @@ class GnativeCarousel {
 			let startAnimate
 
 			const amountOfSteps = this.timeOptions.animationTime / this.timeOptions.interval
-			//current step number
-			let numberOfStep = 0
+
 			//number of main element(element which stays in center upon reload)
 			const mainElement = Math.floor(this.items.length / 2)
 
+			//amount of steps that we miss width and height increasing and go to the reverse direction
 			const numOfMissedSteps = Math.round(amountOfSteps / 100 * this.timeOptions.perToRight)
-			const numOfRemainingSteps = amountOfSteps / 100 * (100 - this.timeOptions.perToRight)
+			//amount of remaining steps
+			const numOfRemainingSteps = Math.round(amountOfSteps / 100 * (100 - this.timeOptions.perToRight))
 
-			const plusWidth = this.tableOfSteps[mainElement - 1].stepWidth[direction] * numOfMissedSteps / numOfRemainingSteps
-			const plusHeight = this.tableOfSteps[mainElement - 1].stepHeight[direction] * numOfMissedSteps / numOfRemainingSteps
+			const numOfEl = direction === 'toPrev' ? mainElement - 1 : mainElement + 1
+			const plusWidth = this.tableOfSteps[numOfEl].stepWidth[direction] * numOfMissedSteps / numOfRemainingSteps
+			const plusHeight = this.tableOfSteps[numOfEl].stepHeight[direction] * numOfMissedSteps / numOfRemainingSteps
 
-			const hiddenWidth = this.tableOfPositions[mainElement - 1].width / 100 * 40
-			const stepLeftToRight = hiddenWidth / (amountOfSteps / 100 * this.timeOptions.perToRight)
-
-			//for changing zIndex for only one time in setInterval
-			let zIndexFlag = false
+			//width which hidden behind the mainElement of its neighboring elements
+			const hiddenWidth = this.tableOfPositions[numOfEl].width / 100 * 40
+			//step size to go to show a hidden width
+			const stepLeftToRight = hiddenWidth / numOfMissedSteps
 
 			//function that make non linear animation
 			const trajectoryChanger = (i, direction) => {
-				//non linear animation for elements which are next to main element
+				//non linear animation for elements which are next to the mainElement
 				if (this.itemsMap[i] === mainElement - 1 || this.itemsMap[i] === mainElement + 1) {
 					//if we are going back
 					if (direction === 'toPrev' && this.itemsMap[i] === mainElement - 1) {
-						if (numberOfStep < numOfMissedSteps) {
-							this.items[i].style.left = `${parseFloat(this.items[i].style.left) + (stepLeftToRight * -1)}%`
+						if (this.animation.currentStep < numOfMissedSteps) {
+							if (!reverseFlag)
+								this.animation.leftX += stepLeftToRight * -1
+							else
+								this.animation.leftX -= stepLeftToRight * -1
+
+							this.items[i].style.left = `${this.animation.leftX}%`
 						} else {
-							if (!zIndexFlag) {
+							if (this.animation.currentStep === numOfMissedSteps && !reverseFlag) {
 								this.items[i].style.zIndex = mainElement + 2
 								this.items[i === this.items.length - 1 ? 0 : i + 1].style.zIndex = mainElement + 1
-								zIndexFlag = true
+							} else if (this.animation.currentStep === numOfMissedSteps && reverseFlag) {
+								this.items[i].style.zIndex = mainElement
+								this.items[i === this.items.length - 1 ? 0 : i + 1].style.zIndex = mainElement + 2
 							}
-							//product of all missed steps + sum of hidden width an element / remaining steps
-							let plusToLeft = ((this.tableOfSteps[this.itemsMap[i]].stepLeft[direction] * numOfMissedSteps + hiddenWidth) / numOfRemainingSteps)
-							this.items[i].style.left = `${parseFloat(this.items[i].style.left) + (this.tableOfSteps[this.itemsMap[i]].stepLeft[direction] + plusToLeft)}%`
-							this.items[i].style.width = `${parseFloat(this.items[i].style.width) + this.tableOfSteps[this.itemsMap[i]].stepWidth[direction] + plusWidth}%`
-							this.items[i].style.height = `${parseFloat(this.items[i].style.height) + this.tableOfSteps[this.itemsMap[i]].stepHeight[direction] + plusHeight}%`
+
+							//product of all missed steps + sum of hidden width an element / (remaining steps + 5.3) - I don't know why, but 5.3 makes it correct
+							let plusToLeft = ((this.tableOfSteps[this.itemsMap[i]].stepLeft[direction] * numOfMissedSteps + hiddenWidth) / (numOfRemainingSteps + 5.3))
+							if (!reverseFlag) {
+								this.animation.leftX += this.tableOfSteps[this.itemsMap[i]].stepLeft[direction] + plusToLeft
+								this.animation.widthX += this.tableOfSteps[this.itemsMap[i]].stepWidth[direction] + plusWidth
+								this.animation.heightX += this.tableOfSteps[this.itemsMap[i]].stepHeight[direction] + plusHeight
+							} else {
+								this.animation.leftX -= this.tableOfSteps[this.itemsMap[i]].stepLeft[direction] + plusToLeft
+								this.animation.widthX -= this.tableOfSteps[this.itemsMap[i]].stepWidth[direction] + plusWidth
+								this.animation.heightX -= this.tableOfSteps[this.itemsMap[i]].stepHeight[direction] + plusHeight
+							}
+							this.items[i].style.left = `${this.animation.leftX}%`
+							this.items[i].style.width = `${this.animation.widthX}%`
+							this.items[i].style.height = `${this.animation.heightX}%`
 						}
 						//if we are going forward 
 					} else if (direction === 'toNext' && this.itemsMap[i] === mainElement + 1) {
-						if (numberOfStep < numOfMissedSteps) {
-							this.items[i].style.left = `${parseFloat(this.items[i].style.left) + stepLeftToRight}%`
+						if (this.animation.currentStep < numOfMissedSteps) {
+							if (!reverseFlag)
+								this.animation.leftX += stepLeftToRight
+							else
+								this.animation.leftX -= stepLeftToRight
+							this.items[i].style.left = `${this.animation.leftX}%`
 						} else {
-							if (!zIndexFlag) {
+							if (this.animation.currentStep === numOfMissedSteps && !reverseFlag) {
 								this.items[i].style.zIndex = mainElement + 2
 								this.items[i === 0 ? this.items.length - 1 : i - 1].style.zIndex = mainElement + 1
-								zIndexFlag = true
+							} else if (this.animation.currentStep === numOfMissedSteps && reverseFlag) {
+								this.items[i].style.zIndex = mainElement
+								this.items[i === 0 ? this.items.length - 1 : i - 1].style.zIndex = mainElement + 2
 							}
-							let plusToLeft = ((Math.abs(this.tableOfSteps[this.itemsMap[i]].stepLeft[direction] * numOfMissedSteps) + hiddenWidth) / numOfRemainingSteps) * -1
-							this.items[i].style.left = `${parseFloat(this.items[i].style.left) + (this.tableOfSteps[this.itemsMap[i]].stepLeft[direction] + plusToLeft)}%`
-							this.items[i].style.width = `${parseFloat(this.items[i].style.width) + this.tableOfSteps[this.itemsMap[i]].stepWidth[direction] + plusWidth}%`
-							this.items[i].style.height = `${parseFloat(this.items[i].style.height) + this.tableOfSteps[this.itemsMap[i]].stepHeight[direction] + plusHeight}%`
+
+							//product of all missed steps + sum of hidden width an element / (remaining steps + 5.3) - I don't know why, but 5.3 makes it correct
+							let plusToLeft = ((Math.abs(this.tableOfSteps[this.itemsMap[i]].stepLeft[direction] * numOfMissedSteps) + hiddenWidth) / (numOfRemainingSteps + 5.3)) * -1
+							if (!reverseFlag) {
+								this.animation.leftX += this.tableOfSteps[this.itemsMap[i]].stepLeft[direction] + plusToLeft
+								this.animation.widthX += this.tableOfSteps[this.itemsMap[i]].stepWidth[direction] + plusWidth
+								this.animation.heightX += this.tableOfSteps[this.itemsMap[i]].stepHeight[direction] + plusHeight
+							} else {
+								this.animation.leftX -= this.tableOfSteps[this.itemsMap[i]].stepLeft[direction] + plusToLeft
+								this.animation.widthX -= this.tableOfSteps[this.itemsMap[i]].stepWidth[direction] + plusWidth
+								this.animation.heightX -= this.tableOfSteps[this.itemsMap[i]].stepHeight[direction] + plusHeight
+							}
+							this.items[i].style.left = `${this.animation.leftX}%`
+							this.items[i].style.width = `${this.animation.widthX}%`
+							this.items[i].style.height = `${this.animation.heightX}%`
 						}
+						//linear animation for the mainElement
 					} else {
-						this.items[i].style.width = `${parseFloat(this.items[i].style.width) + this.tableOfSteps[this.itemsMap[i]].stepWidth[direction]}%`
-						this.items[i].style.height = `${parseFloat(this.items[i].style.height) + this.tableOfSteps[this.itemsMap[i]].stepHeight[direction]}%`
-						this.items[i].style.left = `${parseFloat(this.items[i].style.left) + this.tableOfSteps[this.itemsMap[i]].stepLeft[direction]}%`
+						if (!reverseFlag) {
+							this.items[i].style.width = `${parseFloat(this.items[i].style.width) + this.tableOfSteps[this.itemsMap[i]].stepWidth[direction]}%`
+							this.items[i].style.height = `${parseFloat(this.items[i].style.height) + this.tableOfSteps[this.itemsMap[i]].stepHeight[direction]}%`
+							this.items[i].style.left = `${parseFloat(this.items[i].style.left) + this.tableOfSteps[this.itemsMap[i]].stepLeft[direction]}%`
+						} else {
+							this.items[i].style.width = `${parseFloat(this.items[i].style.width) - this.tableOfSteps[this.itemsMap[i]].stepWidth[direction]}%`
+							this.items[i].style.height = `${parseFloat(this.items[i].style.height) - this.tableOfSteps[this.itemsMap[i]].stepHeight[direction]}%`
+							this.items[i].style.left = `${parseFloat(this.items[i].style.left) - this.tableOfSteps[this.itemsMap[i]].stepLeft[direction]}%`
+						}
+
 					}
-					//linear animation for elements which aren't next to main element
-				} else
-					this.items[i].style.left = `${parseFloat(this.items[i].style.left) + this.tableOfSteps[this.itemsMap[i]].stepLeft[direction]}%`
+					//linear animation for elements which aren't next to the mainElement
+				} else {
+					if (!reverseFlag)
+						this.items[i].style.left = `${parseFloat(this.items[i].style.left) + this.tableOfSteps[this.itemsMap[i]].stepLeft[direction]}%`
+					else
+						this.items[i].style.left = `${parseFloat(this.items[i].style.left) - this.tableOfSteps[this.itemsMap[i]].stepLeft[direction]}%`
+				}
 			}
 
 			//animation function
 			const animation = (direction) => {
-				numberOfStep++
+				//this is some kind of callback to change this.animation.direction, since we write it only once when we start
+				//the responsive swipe in mouseMove(), but when a reverse direction happens we don't pass the correct direction
+				//back to the this.animation
+				if (this.animation.currentStep === 0 && reverseFlag) {
+					direction = direction === 'toPrev' ? 'toNext' : 'toPrev'
+					reverseFlag = false
+					this.setAnimationOptions({ direction, refreshFlag: true, inAnimationFlag: true })
+				}
+
+				if (singleCall && reverseFlag)
+					this.animation.currentStep--
+				else
+					this.animation.currentStep++
+
 				for (let i = 0; i < this.items.length; i++) {
 					if (!(this.itemsMap[i] === mainElement - 1) && !(this.itemsMap[i] === mainElement + 1)) {
-						// console.log(i)
-						this.items[i].style.width = `${parseFloat(this.items[i].style.width) + this.tableOfSteps[this.itemsMap[i]].stepWidth[direction]}%`
-						this.items[i].style.height = `${parseFloat(this.items[i].style.height) + this.tableOfSteps[this.itemsMap[i]].stepHeight[direction]}%`
+						if (!reverseFlag) {
+							this.items[i].style.width = `${parseFloat(this.items[i].style.width) + this.tableOfSteps[this.itemsMap[i]].stepWidth[direction]}%`
+							this.items[i].style.height = `${parseFloat(this.items[i].style.height) + this.tableOfSteps[this.itemsMap[i]].stepHeight[direction]}%`
+						} else {
+							this.items[i].style.width = `${parseFloat(this.items[i].style.width) - this.tableOfSteps[this.itemsMap[i]].stepWidth[direction]}%`
+							this.items[i].style.height = `${parseFloat(this.items[i].style.height) - this.tableOfSteps[this.itemsMap[i]].stepHeight[direction]}%`
+						}
 					}
 
 					//todo may be it also needs change
@@ -538,30 +657,34 @@ class GnativeCarousel {
 					trajectoryChanger(i, direction)
 
 					//changing zIndex on the fly for an element which is last in tableOfPositions
-					if ((numberOfStep === amountOfSteps / 2) && this.itemsMap[i] === this.items.length - 1 && direction === 'toPrev') {
+					if ((this.animation.currentStep === amountOfSteps / 2) && this.itemsMap[i] === this.items.length - 1 && direction === 'toPrev') {
 						this.items[i].style.zIndex = '0'
 					}
 					//changing zIndex on the fly for an element which is first in tableOfPositions
-					if ((numberOfStep === amountOfSteps / 2) && this.itemsMap[i] === 0 && direction === 'toNext') {
+					if ((this.animation.currentStep === amountOfSteps / 2) && this.itemsMap[i] === 0 && direction === 'toNext') {
 						this.items[i].style.zIndex = '0'
 					}
-
 				}
 
-				//if current step >= amount of steps, we stop animation and call callback function
-				if (numberOfStep >= amountOfSteps) {
+				// if current step >= amount of steps, we stop animation and call callback function
+				if (this.animation.currentStep >= amountOfSteps) {
 					clearInterval(startAnimate)
 					callback(direction)
-					resolve()
+					resolve(true)
 				}
 			}
 			//start of animation
-			startAnimate = setInterval(() => { animation(direction) }, 5)
+			if (!singleCall)
+				startAnimate = setInterval(() => { animation(direction) }, 5)
+			else
+				animation(direction)
 		})
 	}
 
 	createSlider() {
-		//get data about container and parent and set correct height and width for them
+		//preparing the slider container
+		//get data about the slider container and a parent and set correct height and width for them
+		this.makeBoxSizing()
 		this.setResponsiveOptions()
 		this.setSliderHeight()
 		this.setSliderWidth()
@@ -572,7 +695,8 @@ class GnativeCarousel {
 		this.setItemsMap()
 		this.setTableOfSteps()
 
-		//then we build slider and elements
+		//then we build the slider and elements
+		this.buildMainElement()
 		this.centeringTheStaticItem()
 		this.alignmentOfItems()
 
@@ -582,10 +706,19 @@ class GnativeCarousel {
 
 	async stackWatcher() {
 		if (this.stackNext > 0) {
+			//if we're in animation we already have some steps with which the animationBehavior() will start an animation
+			//if we aren't in animation the we need to update a data to default and start a new animation
+			if (!this.animation.inAnimationFlag)
+				//The direction is necessary to define a correct nonlinear element
+				//The refreshFlag is necessary to update data for animation
+				this.setAnimationOptions({ direction: 'toNext', refreshFlag: true })
 			await this.animationBehavior('toNext')
 			this.stackNext--
 			this.stackWatcher()
+
 		} else if (this.stackPrev > 0) {
+			if (!this.animation.inAnimationFlag)
+				this.setAnimationOptions({ direction: 'toPrev', refreshFlag: true })
 			await this.animationBehavior('toPrev')
 			this.stackPrev--
 			this.stackWatcher()
@@ -614,39 +747,81 @@ class GnativeCarousel {
 			this.stackNext = 1
 	}
 
-	/*== touch event for mobile ==*/
+	/*== touch events for mobile ==*/
 	getFirstTouch = (e) => {
-		this.itemsContainer.addEventListener('touchend', this.getTouchEnd)
-		this.firstTouchX = e.touches[0].clientX
-		this.firstTouchY = e.touches[0].clientY
-		this.itemsContainer.removeEventListener('touchstart', this.getFirstTouch)
+		if (e.target != this.itemsContainer && e.target != this.staticItem) {
+			this.sliderContainer.addEventListener('touchmove', this.touchMove)
+			this.sliderContainer.addEventListener('touchend', this.touchEnd)
+			this.sliderContainer.addEventListener('touchcancel', this.touchEnd)
+			this.startPosition = e.touches[0].clientX
+		}
 	}
 
-	getTouchEnd = async (e) => {
-		this.itemsContainer.removeEventListener('touchend', this.getTouchEnd)
-		let direction = (Math.abs(this.firstTouchX - e.changedTouches[0].clientX) > Math.abs(this.firstTouchY - e.changedTouches[0].clientY))
+	touchMove = (e) => {
+		const width = this.items[Math.floor(this.items.length / 2)].getBoundingClientRect().width
+		const stepInPX = width / (this.timeOptions.animationTime / this.timeOptions.interval)
 
-		if (direction)
-			if (this.firstTouchX > e.changedTouches[0].clientX)
-				await this.animationBehavior('toNext')
+		if (stepInPX <= Math.abs(this.startPosition - e.touches[0].clientX)) {
+			if (this.startPosition - e.touches[0].clientX > 0) {
+				if (this.stackNext === 0 && this.stackPrev === 0) {
+
+					this.startPosition = e.touches[0].clientX
+
+					if (!this.animation.inAnimationFlag)
+						//The direction is necessary to define a correct nonlinear element and save this value for reverseFlag logic
+						//The refreshFlag is necessary to update data for animation
+						this.setAnimationOptions({ direction: 'toNext', refreshFlag: true, inAnimationFlag: true })
+
+					this.animationBehavior('toNext', true)
+				} else {
+					this.setAnimationOptions({ inAnimationFlag: false })
+					this.touchEnd()
+					this.createClickNext()
+				}
+
+			} else {
+
+				if (this.stackNext === 0 && this.stackPrev === 0) {
+					this.startPosition = e.touches[0].clientX
+
+					if (!this.animation.inAnimationFlag)
+						//The direction is necessary to define a correct nonlinear element and save this value for reverseFlag logic
+						//The refreshFlag is necessary to update data for animation
+						this.setAnimationOptions({ direction: 'toPrev', refreshFlag: true, inAnimationFlag: true })
+
+					this.animationBehavior('toPrev', true)
+				} else {
+					this.setAnimationOptions({ inAnimationFlag: false })
+					this.touchEnd()
+					this.createClickPrev()
+				}
+			}
+		}
+	}
+
+	touchEnd = async () => {
+		this.sliderContainer.removeEventListener('touchmove', this.touchMove)
+		this.sliderContainer.removeEventListener('touchend', this.touchEnd)
+		this.sliderContainer.removeEventListener('touchcancel', this.touchEnd)
+
+		if (this.animation.inAnimationFlag) {
+			if (this.animation.direction === 'toNext')
+				this.createClickNext()
 			else
-				await this.animationBehavior('toPrev')
-
-		this.itemsContainer.addEventListener('touchstart', this.getFirstTouch)
+				this.createClickPrev()
+		}
 	}
-	/*== touch event for mobile ==*/
+	/*== touch events for mobile ==*/
 
 	setEventListeners() {
 		window.addEventListener('resize', () => {
 			const arrOfPoints = Object.keys(this.finalSettings.breakpoints)
 			for (let point = 0; point < arrOfPoints.length; point++) {
-				console.log("I'm in now iter")
 				if (arrOfPoints[point] > window.innerWidth) {
 					if (this.flagForRebuilding.toString() !== arrOfPoints[point].toString()) {
 						this.flagForRebuilding = arrOfPoints[point]
 						this.resetJsStyles()
 						this.createSlider()
-						console.log("I'm in rebuilding", "flag: ", this.flagForRebuilding)
 						return true
 					}
 					return true
@@ -654,19 +829,92 @@ class GnativeCarousel {
 					this.flagForRebuilding = 'large'
 					this.resetJsStyles()
 					this.createSlider()
-					console.log("I'm in large", "flag: ", this.flagForRebuilding)
 					return true
 				}
 			}
 		})
 
-		this.itemsContainer.addEventListener('touchstart', this.getFirstTouch)
-		this.itemsContainer.addEventListener('touchend', this.getTouchEnd)
+		this.sliderContainer.addEventListener('touchstart', this.getFirstTouch)
+		// this.itemsContainer.addEventListener('touchend', this.touchEnd)
 
 		if (this.isNode(this.btnNext) && this.isNode(this.btnPrev)) {
 			this.btnNext.addEventListener('click', this.createClickNext)
+			this.btnNext.addEventListener('mousedown', (e) => e.stopPropagation())
 
 			this.btnPrev.addEventListener('click', this.createClickPrev)
+			this.btnNext.addEventListener('mousedown', (e) => e.stopPropagation())
+		}
+
+		if (this.isNode(this.itemsContainer)) {
+			this.sliderContainer.addEventListener('mousedown', this.getMouseDown)
 		}
 	}
+
+	/*== events for responsive swipe on mouse==*/
+	getMouseDown = (e) => {
+		e.preventDefault()
+
+		if (e.which == 1)
+			if (e.target != this.itemsContainer && e.target != this.staticItem) {
+				this.startPosition = e.clientX
+				this.sliderContainer.addEventListener('mousemove', this.mouseMove)
+				this.sliderContainer.addEventListener('mouseup', this.mouseUp)
+				this.sliderContainer.addEventListener('mouseleave', this.mouseUp)
+			}
+	}
+
+	mouseMove = async (e) => {
+		const width = this.items[Math.floor(this.items.length / 2)].getBoundingClientRect().width
+		const stepInPX = width / (this.timeOptions.animationTime / this.timeOptions.interval)
+
+		if (stepInPX <= Math.abs(this.startPosition - e.clientX)) {
+			if (this.startPosition - e.clientX > 0) {
+				if (this.stackNext === 0 && this.stackPrev === 0) {
+
+					this.startPosition = e.clientX
+
+					if (!this.animation.inAnimationFlag)
+						//The direction is necessary to define a correct nonlinear element and save this value for reverseFlag logic
+						//The refreshFlag is necessary to update data for animation
+						this.setAnimationOptions({ direction: 'toNext', refreshFlag: true, inAnimationFlag: true })
+
+					this.animationBehavior('toNext', true)
+				} else {
+					this.setAnimationOptions({ inAnimationFlag: false })
+					this.mouseUp()
+					this.createClickNext()
+				}
+
+			} else {
+
+				if (this.stackNext === 0 && this.stackPrev === 0) {
+					this.startPosition = e.clientX
+
+					if (!this.animation.inAnimationFlag)
+						//The direction is necessary to define a correct nonlinear element and save this value for reverseFlag logic
+						//The refreshFlag is necessary to update data for animation
+						this.setAnimationOptions({ direction: 'toPrev', refreshFlag: true, inAnimationFlag: true })
+
+					this.animationBehavior('toPrev', true)
+				} else {
+					this.setAnimationOptions({ inAnimationFlag: false })
+					this.mouseUp()
+					this.createClickPrev()
+				}
+			}
+		}
+	}
+
+	mouseUp = async () => {
+		this.sliderContainer.removeEventListener('mousemove', this.mouseMove)
+		this.sliderContainer.removeEventListener('mouseleave', this.mouseUp)
+		this.sliderContainer.removeEventListener('mouseup', this.mouseUp)
+		if (this.animation.inAnimationFlag) {
+			if (this.animation.direction === 'toNext')
+				this.createClickNext()
+			else
+				this.createClickPrev()
+		}
+	}
+	/*== events for responsive swipe on mouse==*/
 }
