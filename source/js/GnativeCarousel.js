@@ -99,7 +99,34 @@ export default class GnativeCarousel {
 	}
 
 	mergeSettings(defaultSettings, settings) {
-		return Object.assign(defaultSettings, settings)
+		let final = Object.assign(defaultSettings, settings)
+
+		if (final.breakpoints !== undefined) {
+			const arrOfPoints = Object.keys(final.breakpoints)
+			let firstOptions = { responsive: final.responsive, adaptive: final.adaptive, itemsOnSide: final.itemsOnSide }
+			for (let i = arrOfPoints.length - 1; i >= 0; i--) {
+				if (i === arrOfPoints.length - 1) {
+					final.breakpoints[arrOfPoints[i]].adaptive = final.breakpoints[arrOfPoints[i]].adaptive ? final.breakpoints[arrOfPoints[i]].adaptive : firstOptions.adaptive
+					final.breakpoints[arrOfPoints[i]].responsive = !final.breakpoints[arrOfPoints[i]].adaptive
+					final.breakpoints[arrOfPoints[i]].itemsOnSide = final.breakpoints[arrOfPoints[i]].itemsOnSide ? final.breakpoints[arrOfPoints[i]].itemsOnSide : firstOptions.itemsOnSide
+				} else {
+					if (final.breakpoints[arrOfPoints[i]].adaptive || final.breakpoints[arrOfPoints[i]].responsive) {
+						if (final.breakpoints[arrOfPoints[i]].adaptive) {
+							final.breakpoints[arrOfPoints[i]].adaptive = final.breakpoints[arrOfPoints[i]].adaptive
+							final.breakpoints[arrOfPoints[i]].responsive = !final.breakpoints[arrOfPoints[i]].adaptive
+						} else {
+							final.breakpoints[arrOfPoints[i]].responsive = final.breakpoints[arrOfPoints[i]].responsive
+							final.breakpoints[arrOfPoints[i]].adaptive = !final.breakpoints[arrOfPoints[i]].responsive
+						}
+					} else {
+						final.breakpoints[arrOfPoints[i]].adaptive = final.breakpoints[arrOfPoints[i + 1]].adaptive
+						final.breakpoints[arrOfPoints[i]].responsive = final.breakpoints[arrOfPoints[i + 1]].responsive
+					}
+					final.breakpoints[arrOfPoints[i]].itemsOnSide = final.breakpoints[arrOfPoints[i]].itemsOnSide ? final.breakpoints[arrOfPoints[i]].itemsOnSide : final.breakpoints[arrOfPoints[i + 1]].itemsOnSide
+				}
+			}
+		}
+		return final
 	}
 
 	setResponsiveOptions() {
