@@ -33,7 +33,7 @@ export default class GnativeCarousel {
 		//time options for animation. It uses in this.animationBehavior()
 		this.timeOptions = {
 			animationTime: this.finalSettings.animationTime,
-			interval: 3,
+			interval: 5,
 			perToRight: 20
 		}
 
