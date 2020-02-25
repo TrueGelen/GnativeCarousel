@@ -110,7 +110,13 @@ export default class GnativeCarousel {
       let firstOptions = { responsive: final.responsive, adaptive: final.adaptive, itemsOnSide: final.itemsOnSide }
       for (let i = arrOfPoints.length - 1; i >= 0; i--) {
         if (i === arrOfPoints.length - 1) {
-          final.breakpoints[arrOfPoints[i]].adaptive = final.breakpoints[arrOfPoints[i]].adaptive ? final.breakpoints[arrOfPoints[i]].adaptive : firstOptions.adaptive
+          if(final.breakpoints[arrOfPoints[i]].adaptive)
+            final.breakpoints[arrOfPoints[i]].adaptive = final.breakpoints[arrOfPoints[i]].adaptive
+          else if (final.breakpoints[arrOfPoints[i]].responsive)
+            final.breakpoints[arrOfPoints[i]].adaptive = !final.breakpoints[arrOfPoints[i]].responsive
+          else
+            final.breakpoints[arrOfPoints[i]].adaptive = firstOptions.adaptive
+
           final.breakpoints[arrOfPoints[i]].responsive = !final.breakpoints[arrOfPoints[i]].adaptive
           final.breakpoints[arrOfPoints[i]].itemsOnSide = final.breakpoints[arrOfPoints[i]].itemsOnSide ? final.breakpoints[arrOfPoints[i]].itemsOnSide : firstOptions.itemsOnSide
         } else {
@@ -130,6 +136,7 @@ export default class GnativeCarousel {
         }
       }
     }
+    // console.log(final.breakpoints)
     return final
   }
 
@@ -288,13 +295,16 @@ export default class GnativeCarousel {
   //reset all js style which were added to elements before new building on resize
   resetJsStyles() {
     //for staticItem [left, top, width, height]
-    this.staticItem.style.left = ''
-    this.staticItem.style.top = ''
-    this.staticItem.style.width = ''
-    this.staticItem.style.height = ''
-
+    if(this.isNode(this.staticItem)){
+      this.staticItem.style.left = ''
+      this.staticItem.style.top = ''
+      this.staticItem.style.width = ''
+      this.staticItem.style.height = ''
+    } 
+        
     //for btnsContainer [zIndex]
-    this.btnsContainer.style.zIndex = ''
+    if(this.isNode(this.staticItem))
+      this.btnsContainer.style.zIndex = ''
 
     //for parent of slider [height, minHeight]
     this.sliderContainer.parentNode.style.height = ''
@@ -718,6 +728,7 @@ export default class GnativeCarousel {
   }
 
   createSlider() {
+    // console.log('createSlider')
     //preparing the slider container
     //get data about the slider container and a parent and set correct height and width for them
     this.makeBoxSizing()
