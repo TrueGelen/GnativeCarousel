@@ -117,7 +117,6 @@ If you want to use the lazy loading that you should add the "Glazy" class for a 
 <div class="GnativeCarousel">
 	<div class="GnativeCarousel__itemsContainer">
 		<img src="./img/slider/1.png" class="Glazy" alt="img1">
-<<<<<<< HEAD
     <img src="./img/slider/2.png" class="Glazy" alt="img2">
     
     <!-- or -->
@@ -127,17 +126,6 @@ If you want to use the lazy loading that you should add the "Glazy" class for a 
     <div>
       <img data-src="img/slider2/slider2__img2.jpg" alt="card" class="Glazy">
     </div>
-=======
-		<img src="./img/slider/2.png" class="Glazy" alt="img2">    
-    		<!--... or -->
-    		<div>
-        		<img data-src="img/slider2/slider2__img1.jpg" alt="card" class="Glazy">
-   		</div>
-    		<div>
-      			<img data-src="img/slider2/slider2__img2.jpg" alt="card" class="Glazy">
-    		</div>
->>>>>>> 564a41bd191515bc1cb9c429c96e5e458fbb66f6
-	</div>
 </div>
 ````
 Also you need to add `lazyLoad` to settings. The example `new GnativeCarousel({...lazyLoad: 1})` and the value has to be a number.
