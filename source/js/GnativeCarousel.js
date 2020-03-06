@@ -14,6 +14,7 @@ export default class GnativeCarousel {
       },
       itemsOnSide: 3,
       adaptive: false,
+      lazyLoad: undefined,
       responsive: true,
       breakpoints: undefined,
     }
@@ -23,10 +24,15 @@ export default class GnativeCarousel {
     //for rebuilding Slider on resize
     this.flagForRebuilding = 'large'
 
+
+    this.firstForLazy = true
+
     //table of virtual positions which is filled in the setTableOfPositions() {width, height, left, zIndex, invert}
     this.tableOfPositions = {}
     //{[actual position of item in array]: [virtual position]}. This is filled in setItemsMap()
     this.itemsMap = {}
+    //map for lazyLoad {[virt position]: [num of item]}.
+    this.virtMap = []
     //This is filled in setTableOfSteps(). 
     //{stepWidth: { toPrev: null, toNext: null }, stepHeight: { ..., ...},stepLeft: {...,...},stepInvert:{...,...}
     this.tableOfSteps = {}
@@ -110,7 +116,7 @@ export default class GnativeCarousel {
       let firstOptions = { responsive: final.responsive, adaptive: final.adaptive, itemsOnSide: final.itemsOnSide }
       for (let i = arrOfPoints.length - 1; i >= 0; i--) {
         if (i === arrOfPoints.length - 1) {
-          if(final.breakpoints[arrOfPoints[i]].adaptive)
+          if (final.breakpoints[arrOfPoints[i]].adaptive)
             final.breakpoints[arrOfPoints[i]].adaptive = final.breakpoints[arrOfPoints[i]].adaptive
           else if (final.breakpoints[arrOfPoints[i]].responsive)
             final.breakpoints[arrOfPoints[i]].adaptive = !final.breakpoints[arrOfPoints[i]].responsive
@@ -157,24 +163,36 @@ export default class GnativeCarousel {
     // console.log(this.responsiveOptions)
   }
 
+  //it defines a first element and an order of elements and build in DOM
   buildMainElement() {
-    if (typeof this.finalSettings.mainElement.class === 'string') {
+    if (typeof this.finalSettings.mainElement.class === 'string' && this.finalSettings.mainElement.keepOrder) {
       const classNm = (this.finalSettings.mainElement.class[0] === '.') ? this.finalSettings.mainElement.class : `.${this.finalSettings.mainElement.class}`
       const mainElem = this.itemsContainer.querySelector(classNm)
-
+      let indexOfMaintEl = null
       if (this.isNode(mainElem)) {
-        const indexOfMaintEl = Math.floor(this.items.length / 2)
+        indexOfMaintEl = Math.floor(this.items.length / 2)
 
-        if (this.finalSettings.mainElement.keepOrder) {
-          let i = (indexOfMaintEl === this.items.length / 2) ? 1 : 0
-          while (i <= indexOfMaintEl) {
-            this.itemsContainer.append(this.items[0])
-            i++
-          }
-
-        } else {
-          this.items[indexOfMaintEl].after(mainElem)
-        }
+        while (this.items[indexOfMaintEl] !== mainElem)
+          this.itemsContainer.append(this.items[0])
+      } else {
+        console.error(`the class ${classNm} is absent in DOM`)
+      }
+    } else if (typeof this.finalSettings.mainElement.class === 'string') {
+      const classNm = (this.finalSettings.mainElement.class[0] === '.') ? this.finalSettings.mainElement.class : `.${this.finalSettings.mainElement.class}`
+      const mainElem = this.itemsContainer.querySelector(classNm)
+      let indexOfMaintEl = null
+      if (this.isNode(mainElem)) {
+        indexOfMaintEl = Math.floor(this.items.length / 2)
+        this.items[indexOfMaintEl].after(mainElem)
+      } else {
+        console.error(`the class ${classNm} is absent in DOM`)
+      }
+    } else if (this.finalSettings.mainElement.keepOrder) {
+      const indexOfMaintEl = Math.floor(this.items.length / 2)
+      let i = (indexOfMaintEl === this.items.length / 2) ? 1 : 0
+      while (i <= indexOfMaintEl) {
+        this.itemsContainer.append(this.items[0])
+        i++
       }
     }
   }
@@ -212,6 +230,8 @@ export default class GnativeCarousel {
       return elem
     }
 
+    const mainElement = Math.floor(this.items.length / 2)
+
     //finding actual height of the slider
     const sliderPaddingY = parseInt(this.getPropertyOfElement(this.sliderContainer, 'padding-top'))
       + parseInt(this.getPropertyOfElement(this.sliderContainer, 'padding-bottom'))
@@ -223,7 +243,9 @@ export default class GnativeCarousel {
       calculatedHeight
 
     //determine a biggestElem
-    const biggestElem = getBiggestInnerElement(this.staticItem, this.items[0])
+    const biggestElem = getBiggestInnerElement(this.staticItem, this.items[mainElement - this.finalSettings.itemsOnSide - this.finalSettings.lazyLoad])
+
+    // console.log(this.getPropertyOfElement(this.items[mainElement], "height"))
 
     if (sliderHeight < biggestElem.sum) {
       if (sliderHeight < biggestElem.height && sliderHeight !== 0) {
@@ -251,10 +273,11 @@ export default class GnativeCarousel {
     const sumWidthOfStaticItem = staticItemWidth + staticItemBoxShadow
 
     //items container
-    let itemWidth = this.items[0].getBoundingClientRect().width
+    const mainElement = Math.floor(this.items.length / 2)
+    let itemWidth = this.items[mainElement].getBoundingClientRect().width
     itemWidth = itemWidth - (itemWidth / 100 * 15)
 
-    let itemsContainerWidth = itemWidth / 100 * 60 + this.items[0].getBoundingClientRect().width / 2
+    let itemsContainerWidth = itemWidth / 100 * 60 + this.items[mainElement].getBoundingClientRect().width / 2
     for (let i = 0; i < this.responsiveOptions.itemsOnSide - 1; i++) {
       itemWidth = itemWidth - (itemWidth / 100 * 5)
       itemsContainerWidth += itemWidth / 100 * 15
@@ -295,15 +318,15 @@ export default class GnativeCarousel {
   //reset all js style which were added to elements before new building on resize
   resetJsStyles() {
     //for staticItem [left, top, width, height]
-    if(this.isNode(this.staticItem)){
+    if (this.isNode(this.staticItem)) {
       this.staticItem.style.left = ''
       this.staticItem.style.top = ''
       this.staticItem.style.width = ''
       this.staticItem.style.height = ''
-    } 
-        
+    }
+
     //for btnsContainer [zIndex]
-    if(this.isNode(this.staticItem))
+    if (this.isNode(this.staticItem))
       this.btnsContainer.style.zIndex = ''
 
     //for parent of slider [height, minHeight]
@@ -354,7 +377,7 @@ export default class GnativeCarousel {
 
     this.tableOfPositions[mainElement] = {
       width: itemWidth / containerWidth * 100, //?
-      height: this.items[0].getBoundingClientRect().height / containerHeight * 100,
+      height: this.items[mainElement - this.finalSettings.itemsOnSide - this.finalSettings.lazyLoad].getBoundingClientRect().height / containerHeight * 100,
       left: ((containerWidth - itemWidth) / 2) / containerWidth * 100,
       zIndex: mainElement + 2,
       opacity: 1,
@@ -555,6 +578,8 @@ export default class GnativeCarousel {
           this.items[i].style.zIndex = `${this.tableOfPositions[this.itemsMap[i]].zIndex}`
           this.items[i].style.filter = `invert(${this.tableOfPositions[this.itemsMap[i]].invert})`
         }
+
+        this.lazyLoadController(direction)
       }
 
       //variable for start and stop setInterval
@@ -727,8 +752,122 @@ export default class GnativeCarousel {
     })
   }
 
-  createSlider() {
+  //it forms a lazy loading 
+  async lazyLoad(ind) {
+    //if slide has the Glazy class that it is added to a array for the lazy loading
+    let lazyEl = this.items[ind].classList.contains('Glazy') ? [this.items[ind], ...this.items[ind].querySelectorAll('.Glazy')] : [...this.items[ind].querySelectorAll('.Glazy')]
+    if (this.firstForLazy)
+      await Promise.all(lazyEl.map(child => {
+        return this.load(child, child.getAttribute('data-src'))
+      }))
+    else
+      Promise.all(lazyEl.map(child => {
+        return this.load(child, child.getAttribute('data-src'))
+      }))
+  }
+
+  //it makes a load directly
+  async load(el, url) {
+
+    return new Promise((resolve, reject) => {
+      el.src = url
+
+      el.addEventListener('load', () => {
+        el.classList.remove('Glazy')
+        resolve()
+      })
+
+      el.addEventListener('error', () => reject(`img wasn't found. url: ${url}`))
+    })
+  }
+
+  //it watches and changes on this.virtMap and makes a lazy loading on a slide event
+  lazyLoadController(direction) {
+    return new Promise((resolve, reject) => {
+      const mainElem = Math.floor(this.items.length / 2)
+
+      if (direction === 'toNext') {
+        // console.log('!!!!!!!!!!!', this.virtMap, this.finalSettings.itemsOnSide, this.finalSettings.lazyLoad, this.items.length)
+        let ind = (this.virtMap[mainElem] + this.finalSettings.itemsOnSide + this.finalSettings.lazyLoad + 1) > this.items.length - 1 ?
+          (this.virtMap[mainElem] + this.finalSettings.itemsOnSide + this.finalSettings.lazyLoad + 1) - (this.items.length - 1) - 1 :
+          (this.virtMap[mainElem] + this.finalSettings.itemsOnSide + this.finalSettings.lazyLoad + 1)
+
+        this.lazyLoad(ind)
+
+        this.virtMap.push(this.virtMap.shift())
+        resolve()
+      } else {
+        let ind = (this.virtMap[mainElem] - this.finalSettings.itemsOnSide - this.finalSettings.lazyLoad - 1) < 0 ?
+          this.items.length + (this.virtMap[mainElem] - this.finalSettings.itemsOnSide - this.finalSettings.lazyLoad - 1) :
+          (this.virtMap[mainElem] - this.finalSettings.itemsOnSide - this.finalSettings.lazyLoad - 1)
+
+        this.lazyLoad(ind)
+
+        this.virtMap.unshift(this.virtMap.pop())
+        resolve()
+      }
+    })
+  }
+
+  setVirtMap() {
+    for (let i = 0; i < this.items.length; i++) {
+      this.virtMap[i] = i
+    }
+
+    // console.log(this.virtMap, 'setVirtMap')
+  }
+
+  //check and set a correct value for amount of items which need to lazy loading on click
+  //and set a virtual map for lazy loading
+  setLazyLoad() {
+    if (this.finalSettings.lazyLoad === true || typeof this.finalSettings.lazyLoad === 'number') {
+      if (typeof typeof this.finalSettings.lazyLoad === 'number') {
+        this.finalSettings.lazyLoad = Math.min(Math.max(this.finalSettings.lazyLoad, 1), (this.items.length - this.finalSettings.itemsOnSide * 2 + 1))
+      }
+      this.setVirtMap()
+    }
+  }
+
+  //lazy loading of first items on a page loading
+  async firstLazyLoad() {
+    const mainElement = Math.floor(this.items.length / 2)
+
+    for (let i = 0; i < this.items.length; i++) {
+      // console.log(i, mainElement, this.finalSettings.itemsOnSide, this.finalSettings.lazyLoad)
+      if (i >= mainElement - this.finalSettings.itemsOnSide - this.finalSettings.lazyLoad && i <= mainElement + this.finalSettings.itemsOnSide + this.finalSettings.lazyLoad) {
+
+        if (this.firstForLazy) {
+          await this.lazyLoad(i)
+          this.firstForLazy = false
+        }
+        else {
+          this.lazyLoad(i)
+        }
+
+      } else {
+        if (this.items[i].classList.contains('Glazy')) {
+          this.items[i].alt = ''
+        }
+        const children = this.items[i].querySelectorAll('.Glazy')
+        for (let i = 0; i < children.length; i++)
+          children[i].alt = ''
+      }
+    }
+  }
+
+  async createSlider() {
     // console.log('createSlider')
+
+    this.buildMainElement()
+
+    if (typeof this.finalSettings.lazyLoad === 'number') {
+      this.setLazyLoad()
+      await this.firstLazyLoad()
+    } else {
+      console.error('type of the lazyLoad has to be a number')
+    }
+
+
     //preparing the slider container
     //get data about the slider container and a parent and set correct height and width for them
     this.makeBoxSizing()
@@ -743,7 +882,7 @@ export default class GnativeCarousel {
     this.setTableOfSteps()
 
     //then we build the slider and elements
-    this.buildMainElement()
+
     this.isNode(this.staticItem) ? this.centeringTheStaticItem() : false
     this.alignmentOfItems()
 

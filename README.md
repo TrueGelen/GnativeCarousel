@@ -3,7 +3,7 @@
 
 Usage
 -----------------------------
-#### The expamle js:
+#### The example js:
 ````js
 new GnativeCarousel({
 		mainElement: {
@@ -27,7 +27,7 @@ new GnativeCarousel({
 	}).createSlider()
   ````
   
-  #### The expamle HTML:
+  #### The example HTML:
   ````html
 <div class="GnativeCarousel">
 	<img class="GnativeCarousel__staticItem" src="./path" alt="layout">
@@ -95,7 +95,7 @@ new GnativeCarousel({
   ````
   
   ### If you want to have more buttons, you can use method "doSlide(nodeElement, 'direction')":
-  #### The expample:
+  #### The example:
   
   ````js
   let slider = new GnativeCarousel({...})
@@ -107,5 +107,27 @@ new GnativeCarousel({
 	slider.doSlide(secondaryBtnNext, 'next')
 	slider.doSlide(secondaryBtnPrev, 'prev')
   ````
-  
 
+h2 Lazy loading
+If you want to use the lazy loading that you should add the "Glazy" class for a slide or elements which are inner of slide.
+
+#### The example HTML:
+ ````html
+<div class="GnativeCarousel">
+	<div class="GnativeCarousel__itemsContainer">
+		<img src="./img/slider/1.png" class="Glazy" alt="img1">
+		<img src="./img/slider/2.png" class="Glazy" alt="img2">
+    ...
+    <!-- or -->
+    <div>
+        <img data-src="img/slider2/slider2__img1.jpg" alt="card"
+          class="Glazy">
+    </div>
+    <div>
+      <img data-src="img/slider2/slider2__img2.jpg" alt="card"
+        class="Glazy">
+    </div>
+	</div>
+</div>
+````
+Also you need to add `lazyLoad` to settings. The example `new GnativeCarousel({...lazyLoad: 1})` and the value has to be a number.
