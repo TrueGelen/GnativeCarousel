@@ -109,6 +109,7 @@ new GnativeCarousel({
   ````
 
 h2 Lazy loading
+-------------------------
 If you want to use the lazy loading that you should add the "Glazy" class for a slide or elements which are inner of slide.
 
 #### The example HTML:
