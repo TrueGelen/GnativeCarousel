@@ -14,7 +14,7 @@ export default class GnativeCarousel {
       },
       itemsOnSide: 3,
       adaptive: false,
-      lazyLoad: false,
+      lazyLoad: undefined,
       responsive: true,
       breakpoints: undefined,
     }
@@ -375,9 +375,11 @@ export default class GnativeCarousel {
     const itemWidth = this.items[0].getBoundingClientRect().width//?
     const mainElement = Math.floor(this.items.length / 2)
 
+
+    const lazyLoad = typeof this.finalSettings.lazyLoad === 'number' ? this.finalSettings.lazyLoad : 0
     this.tableOfPositions[mainElement] = {
       width: itemWidth / containerWidth * 100, //?
-      height: this.items[mainElement - this.finalSettings.itemsOnSide - this.finalSettings.lazyLoad].getBoundingClientRect().height / containerHeight * 100,
+      height: this.items[mainElement - this.finalSettings.itemsOnSide - lazyLoad].getBoundingClientRect().height / containerHeight * 100,
       left: ((containerWidth - itemWidth) / 2) / containerWidth * 100,
       zIndex: mainElement + 2,
       opacity: 1,
@@ -583,7 +585,8 @@ export default class GnativeCarousel {
           this.items[i].style.filter = `invert(${this.tableOfPositions[this.itemsMap[i]].invert})`
         }
 
-        this.lazyLoadController(direction)
+        if (typeof this.finalSettings.lazyLoad === 'number')
+          this.lazyLoadController(direction)
       }
 
       //variable for start and stop setInterval
