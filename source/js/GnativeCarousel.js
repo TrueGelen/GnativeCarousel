@@ -14,7 +14,7 @@ export default class GnativeCarousel {
       },
       itemsOnSide: 3,
       adaptive: false,
-      lazyLoad: undefined,
+      lazyLoad: false,
       responsive: true,
       breakpoints: undefined,
     }
@@ -542,19 +542,23 @@ export default class GnativeCarousel {
   }
 
   animationBehavior(direction, singleCall = false) {
+
     //the flag defining of start reverse steps in a animation
     let reverseFlag = false
-    //if we started to swipe the slider using a responsive swipe and a actual direction(direction)
-    // doesn't match a saved direction(this.animation.direction) the reverseFlag is true
+    //if we started to swipe the slider using a responsive swipe and an actual direction(=direction)
+    // doesn't match a saved direction(=this.animation.direction) the reverseFlag is true
     if (this.animation.inAnimationFlag) {
       reverseFlag = (direction === this.animation.direction) ? false : true
       direction = (direction === this.animation.direction) ? direction : this.animation.direction
     }
 
+    // console.log('\nanimationBehavior:', '\ndirection:', direction, '\nsingleCall:', singleCall, '\nreverseFlag:', reverseFlag)
+
     return new Promise((resolve) => {
       //changing virtual positions numbers for actual elements in itemsMap after animation
       //and setting items on correct virtual positions
       const callback = (direction) => {
+        // console.log('\ncallback:', '\ndirection:', direction)
 
         this.setAnimationOptions({ refreshFlag: true })
 
@@ -604,6 +608,12 @@ export default class GnativeCarousel {
       //step size to go to show a hidden width
       const stepLeftToRight = hiddenWidth / numOfMissedSteps
 
+      //speedUp
+      const coefficient = (this.finalSettings.animationTime / 250 <= 1) ? this.finalSettings.animationTime / 250 - 1 : this.finalSettings.animationTime / 250 - 1
+      const speedUp = singleCall ? 2 + coefficient : 1
+      // const speedUp = singleCall ? 1 : 1
+      // console.log('\nspeedUp', speedUp)
+
       //function that make non linear animation
       const trajectoryChanger = (i, direction) => {
         //non linear animation for elements which are next to the mainElement
@@ -612,16 +622,16 @@ export default class GnativeCarousel {
           if (direction === 'toPrev' && this.itemsMap[i] === mainElement - 1) {
             if (this.animation.currentStep < numOfMissedSteps) {
               if (!reverseFlag)
-                this.animation.leftX += stepLeftToRight * -1
+                this.animation.leftX += (stepLeftToRight * -1) * speedUp
               else
-                this.animation.leftX -= stepLeftToRight * -1
+                this.animation.leftX -= (stepLeftToRight * -1) * speedUp
 
               this.items[i].style.left = `${this.animation.leftX}%`
             } else {
-              if (this.animation.currentStep === numOfMissedSteps && !reverseFlag) {
+              if (this.animation.currentStep >= numOfMissedSteps && !reverseFlag && (this.items[i].style.zIndex != mainElement + 2)) {
                 this.items[i].style.zIndex = mainElement + 2
                 this.items[i === this.items.length - 1 ? 0 : i + 1].style.zIndex = mainElement + 1
-              } else if (this.animation.currentStep === numOfMissedSteps && reverseFlag) {
+              } else if (this.animation.currentStep >= numOfMissedSteps && reverseFlag && this.items[i].style.zIndex != mainElement) {
                 this.items[i].style.zIndex = mainElement
                 this.items[i === this.items.length - 1 ? 0 : i + 1].style.zIndex = mainElement + 2
               }
@@ -629,13 +639,13 @@ export default class GnativeCarousel {
               //product of all missed steps + sum of hidden width an element / (remaining steps + 5.3) - I don't know why, but 5.3 makes it correct
               let plusToLeft = ((this.tableOfSteps[this.itemsMap[i]].stepLeft[direction] * numOfMissedSteps + hiddenWidth) / (numOfRemainingSteps + 5.3))
               if (!reverseFlag) {
-                this.animation.leftX += this.tableOfSteps[this.itemsMap[i]].stepLeft[direction] + plusToLeft
-                this.animation.widthX += this.tableOfSteps[this.itemsMap[i]].stepWidth[direction] + plusWidth
-                this.animation.heightX += this.tableOfSteps[this.itemsMap[i]].stepHeight[direction] + plusHeight
+                this.animation.leftX += (this.tableOfSteps[this.itemsMap[i]].stepLeft[direction] + plusToLeft) * speedUp
+                this.animation.widthX += (this.tableOfSteps[this.itemsMap[i]].stepWidth[direction] + plusWidth) * speedUp
+                this.animation.heightX += (this.tableOfSteps[this.itemsMap[i]].stepHeight[direction] + plusHeight) * speedUp
               } else {
-                this.animation.leftX -= this.tableOfSteps[this.itemsMap[i]].stepLeft[direction] + plusToLeft
-                this.animation.widthX -= this.tableOfSteps[this.itemsMap[i]].stepWidth[direction] + plusWidth
-                this.animation.heightX -= this.tableOfSteps[this.itemsMap[i]].stepHeight[direction] + plusHeight
+                this.animation.leftX -= (this.tableOfSteps[this.itemsMap[i]].stepLeft[direction] + plusToLeft) * speedUp
+                this.animation.widthX -= (this.tableOfSteps[this.itemsMap[i]].stepWidth[direction] + plusWidth) * speedUp
+                this.animation.heightX -= (this.tableOfSteps[this.itemsMap[i]].stepHeight[direction] + plusHeight) * speedUp
               }
               this.items[i].style.left = `${this.animation.leftX}%`
               this.items[i].style.width = `${this.animation.widthX}%`
@@ -645,15 +655,15 @@ export default class GnativeCarousel {
           } else if (direction === 'toNext' && this.itemsMap[i] === mainElement + 1) {
             if (this.animation.currentStep < numOfMissedSteps) {
               if (!reverseFlag)
-                this.animation.leftX += stepLeftToRight
+                this.animation.leftX += stepLeftToRight * speedUp
               else
-                this.animation.leftX -= stepLeftToRight
+                this.animation.leftX -= stepLeftToRight * speedUp
               this.items[i].style.left = `${this.animation.leftX}%`
             } else {
-              if (this.animation.currentStep === numOfMissedSteps && !reverseFlag) {
+              if (this.animation.currentStep >= numOfMissedSteps && !reverseFlag && (this.items[i].style.zIndex != mainElement + 2)) {
                 this.items[i].style.zIndex = mainElement + 2
                 this.items[i === 0 ? this.items.length - 1 : i - 1].style.zIndex = mainElement + 1
-              } else if (this.animation.currentStep === numOfMissedSteps && reverseFlag) {
+              } else if (this.animation.currentStep >= numOfMissedSteps && reverseFlag && this.items[i].style.zIndex !== mainElement) {
                 this.items[i].style.zIndex = mainElement
                 this.items[i === 0 ? this.items.length - 1 : i - 1].style.zIndex = mainElement + 2
               }
@@ -661,13 +671,13 @@ export default class GnativeCarousel {
               //product of all missed steps + sum of hidden width an element / (remaining steps + 5.3) - I don't know why, but 5.3 makes it correct
               let plusToLeft = ((Math.abs(this.tableOfSteps[this.itemsMap[i]].stepLeft[direction] * numOfMissedSteps) + hiddenWidth) / (numOfRemainingSteps + 5.3)) * -1
               if (!reverseFlag) {
-                this.animation.leftX += this.tableOfSteps[this.itemsMap[i]].stepLeft[direction] + plusToLeft
-                this.animation.widthX += this.tableOfSteps[this.itemsMap[i]].stepWidth[direction] + plusWidth
-                this.animation.heightX += this.tableOfSteps[this.itemsMap[i]].stepHeight[direction] + plusHeight
+                this.animation.leftX += (this.tableOfSteps[this.itemsMap[i]].stepLeft[direction] + plusToLeft) * speedUp
+                this.animation.widthX += (this.tableOfSteps[this.itemsMap[i]].stepWidth[direction] + plusWidth) * speedUp
+                this.animation.heightX += (this.tableOfSteps[this.itemsMap[i]].stepHeight[direction] + plusHeight) * speedUp
               } else {
-                this.animation.leftX -= this.tableOfSteps[this.itemsMap[i]].stepLeft[direction] + plusToLeft
-                this.animation.widthX -= this.tableOfSteps[this.itemsMap[i]].stepWidth[direction] + plusWidth
-                this.animation.heightX -= this.tableOfSteps[this.itemsMap[i]].stepHeight[direction] + plusHeight
+                this.animation.leftX -= (this.tableOfSteps[this.itemsMap[i]].stepLeft[direction] + plusToLeft) * speedUp
+                this.animation.widthX -= (this.tableOfSteps[this.itemsMap[i]].stepWidth[direction] + plusWidth) * speedUp
+                this.animation.heightX -= (this.tableOfSteps[this.itemsMap[i]].stepHeight[direction] + plusHeight) * speedUp
               }
               this.items[i].style.left = `${this.animation.leftX}%`
               this.items[i].style.width = `${this.animation.widthX}%`
@@ -676,22 +686,22 @@ export default class GnativeCarousel {
             //linear animation for the mainElement
           } else {
             if (!reverseFlag) {
-              this.items[i].style.width = `${parseFloat(this.items[i].style.width) + this.tableOfSteps[this.itemsMap[i]].stepWidth[direction]}%`
-              this.items[i].style.height = `${parseFloat(this.items[i].style.height) + this.tableOfSteps[this.itemsMap[i]].stepHeight[direction]}%`
-              this.items[i].style.left = `${parseFloat(this.items[i].style.left) + this.tableOfSteps[this.itemsMap[i]].stepLeft[direction]}%`
+              this.items[i].style.width = `${parseFloat(this.items[i].style.width) + this.tableOfSteps[this.itemsMap[i]].stepWidth[direction] * speedUp}%`
+              this.items[i].style.height = `${parseFloat(this.items[i].style.height) + this.tableOfSteps[this.itemsMap[i]].stepHeight[direction] * speedUp}%`
+              this.items[i].style.left = `${parseFloat(this.items[i].style.left) + this.tableOfSteps[this.itemsMap[i]].stepLeft[direction] * speedUp}%`
             } else {
-              this.items[i].style.width = `${parseFloat(this.items[i].style.width) - this.tableOfSteps[this.itemsMap[i]].stepWidth[direction]}%`
-              this.items[i].style.height = `${parseFloat(this.items[i].style.height) - this.tableOfSteps[this.itemsMap[i]].stepHeight[direction]}%`
-              this.items[i].style.left = `${parseFloat(this.items[i].style.left) - this.tableOfSteps[this.itemsMap[i]].stepLeft[direction]}%`
+              this.items[i].style.width = `${parseFloat(this.items[i].style.width) - this.tableOfSteps[this.itemsMap[i]].stepWidth[direction] * speedUp}%`
+              this.items[i].style.height = `${parseFloat(this.items[i].style.height) - this.tableOfSteps[this.itemsMap[i]].stepHeight[direction] * speedUp}%`
+              this.items[i].style.left = `${parseFloat(this.items[i].style.left) - this.tableOfSteps[this.itemsMap[i]].stepLeft[direction] * speedUp}%`
             }
 
           }
           //linear animation for elements which aren't next to the mainElement
         } else {
           if (!reverseFlag)
-            this.items[i].style.left = `${parseFloat(this.items[i].style.left) + this.tableOfSteps[this.itemsMap[i]].stepLeft[direction]}%`
+            this.items[i].style.left = `${parseFloat(this.items[i].style.left) + this.tableOfSteps[this.itemsMap[i]].stepLeft[direction] * speedUp}%`
           else
-            this.items[i].style.left = `${parseFloat(this.items[i].style.left) - this.tableOfSteps[this.itemsMap[i]].stepLeft[direction]}%`
+            this.items[i].style.left = `${parseFloat(this.items[i].style.left) - this.tableOfSteps[this.itemsMap[i]].stepLeft[direction] * speedUp}%`
         }
       }
 
@@ -707,18 +717,20 @@ export default class GnativeCarousel {
         }
 
         if (singleCall && reverseFlag)
-          this.animation.currentStep--
+          this.animation.currentStep = parseFloat((this.animation.currentStep - (1 * speedUp)).toFixed(1))
         else
-          this.animation.currentStep++
+          this.animation.currentStep = parseFloat((this.animation.currentStep + (1 * speedUp)).toFixed(1))
+
+        // console.log('\nthis.animation.currentStep:', this.animation.currentStep)
 
         for (let i = 0; i < this.items.length; i++) {
           if (!(this.itemsMap[i] === mainElement - 1) && !(this.itemsMap[i] === mainElement + 1)) {
             if (!reverseFlag) {
-              this.items[i].style.width = `${parseFloat(this.items[i].style.width) + this.tableOfSteps[this.itemsMap[i]].stepWidth[direction]}%`
-              this.items[i].style.height = `${parseFloat(this.items[i].style.height) + this.tableOfSteps[this.itemsMap[i]].stepHeight[direction]}%`
+              this.items[i].style.width = `${parseFloat(this.items[i].style.width) + this.tableOfSteps[this.itemsMap[i]].stepWidth[direction] * speedUp}%`
+              this.items[i].style.height = `${parseFloat(this.items[i].style.height) + this.tableOfSteps[this.itemsMap[i]].stepHeight[direction] * speedUp}%`
             } else {
-              this.items[i].style.width = `${parseFloat(this.items[i].style.width) - this.tableOfSteps[this.itemsMap[i]].stepWidth[direction]}%`
-              this.items[i].style.height = `${parseFloat(this.items[i].style.height) - this.tableOfSteps[this.itemsMap[i]].stepHeight[direction]}%`
+              this.items[i].style.width = `${parseFloat(this.items[i].style.width) - this.tableOfSteps[this.itemsMap[i]].stepWidth[direction] * speedUp}%`
+              this.items[i].style.height = `${parseFloat(this.items[i].style.height) - this.tableOfSteps[this.itemsMap[i]].stepHeight[direction] * speedUp}%`
             }
           }
 
@@ -728,11 +740,11 @@ export default class GnativeCarousel {
           trajectoryChanger(i, direction)
 
           //changing zIndex on the fly for an element which is last in tableOfPositions
-          if ((this.animation.currentStep === amountOfSteps / 2) && this.itemsMap[i] === this.items.length - 1 && direction === 'toPrev') {
+          if ((this.animation.currentStep >= amountOfSteps / 2) && this.itemsMap[i] === this.items.length - 1 && direction === 'toPrev') {
             this.items[i].style.zIndex = '0'
           }
           //changing zIndex on the fly for an element which is first in tableOfPositions
-          if ((this.animation.currentStep === amountOfSteps / 2) && this.itemsMap[i] === 0 && direction === 'toNext') {
+          if ((this.animation.currentStep >= amountOfSteps / 2) && this.itemsMap[i] === 0 && direction === 'toNext') {
             this.items[i].style.zIndex = '0'
           }
         }
@@ -860,11 +872,9 @@ export default class GnativeCarousel {
 
     this.buildMainElement()
 
-    if (typeof this.finalSettings.lazyLoad === 'number') {
+    if (this.lazyLoad === true || typeof this.finalSettings.lazyLoad === 'number') {
       this.setLazyLoad()
       await this.firstLazyLoad()
-    } else {
-      console.error('type of the lazyLoad has to be a number')
     }
 
 
