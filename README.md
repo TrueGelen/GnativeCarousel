@@ -87,10 +87,30 @@ new GnativeCarousel({
 			//boolean
 			responsive: true,
 			//object {'1100': { itemsOnSide: 4, adaptive: true},
-			//				'960': { itemsOnSide: 3, responsive: true }, 
-			//				'768': { itemsOnSide: 2 }}...
+			//				'960': { itemsOnSide: 3, responsive: true,  otherItems:{...}}, 
+			//				'768': { itemsOnSide: 2, secondItems:{...}, otherItems:{...} }...
 			//if you do not define any of these keys, it will be assigned the previous value
-			breakpoints: undefined,
+      breakpoints: undefined,
+      //number
+      lazyLoad: undefined,
+      //object
+      secondItems: {
+        //number
+        //from a main slide
+        scale: 0.85,
+        //number
+        //it is a percentage of the main slide
+        visibleWidth: 60
+      },
+      //object
+      otherItems: {
+        //number
+        //from a slide which is before this
+        scale: 0.95,
+        //number
+        //it is a percentage of the slide which is before this
+        visibleWidth: 15
+      }
 		}
   ````
   

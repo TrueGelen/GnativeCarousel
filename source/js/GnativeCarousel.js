@@ -14,16 +14,23 @@ export default class GnativeCarousel {
       },
       itemsOnSide: 3,
       adaptive: false,
-      lazyLoad: undefined,
       responsive: true,
       breakpoints: undefined,
+      lazyLoad: undefined,
+      secondItems: {
+        scale: 0.85,
+        visibleWidth: 60
+      },
+      otherItems: {
+        scale: 0.95,
+        visibleWidth: 15
+      }
     }
 
     this.finalSettings = this.mergeSettings(this.defaultSettings, settings)
 
     //for rebuilding Slider on resize
     this.flagForRebuilding = 'large'
-
 
     this.firstForLazy = true
 
@@ -47,7 +54,15 @@ export default class GnativeCarousel {
     this.responsiveOptions = {
       responsive: !this.finalSettings.adaptive,
       adaptive: this.finalSettings.adaptive,
-      itemsOnSide: this.finalSettings.itemsOnSide
+      itemsOnSide: this.finalSettings.itemsOnSide,
+      secondItems: {
+        scale: this.finalSettings.secondItems.scale,
+        visibleWidth: this.finalSettings.secondItems.visibleWidth
+      },
+      otherItems: {
+        scale: this.finalSettings.otherItems.scale,
+        visibleWidth: this.finalSettings.otherItems.visibleWidth
+      }
     }
 
     //for responsive swipe on a mouse and a touch event
@@ -109,23 +124,42 @@ export default class GnativeCarousel {
   }
 
   mergeSettings(defaultSettings, settings) {
+    // console.log(settings)
     let final = Object.assign(defaultSettings, settings)
 
     if (final.breakpoints !== undefined) {
+
       const arrOfPoints = Object.keys(final.breakpoints)
-      let firstOptions = { responsive: final.responsive, adaptive: final.adaptive, itemsOnSide: final.itemsOnSide }
+
+      let firstOptions = {
+        responsive: final.responsive,
+        adaptive: final.adaptive,
+        itemsOnSide: final.itemsOnSide,
+        secondItems: final.secondItems,
+        otherItems: final.otherItems
+      }
+
       for (let i = arrOfPoints.length - 1; i >= 0; i--) {
+        //biggest breakpoint or first after desktop
         if (i === arrOfPoints.length - 1) {
+          /* adaptive */
           if (final.breakpoints[arrOfPoints[i]].adaptive)
             final.breakpoints[arrOfPoints[i]].adaptive = final.breakpoints[arrOfPoints[i]].adaptive
           else if (final.breakpoints[arrOfPoints[i]].responsive)
             final.breakpoints[arrOfPoints[i]].adaptive = !final.breakpoints[arrOfPoints[i]].responsive
           else
             final.breakpoints[arrOfPoints[i]].adaptive = firstOptions.adaptive
+          /* adaptive */
 
+          //responsive and itemsOnSide
           final.breakpoints[arrOfPoints[i]].responsive = !final.breakpoints[arrOfPoints[i]].adaptive
           final.breakpoints[arrOfPoints[i]].itemsOnSide = final.breakpoints[arrOfPoints[i]].itemsOnSide ? final.breakpoints[arrOfPoints[i]].itemsOnSide : firstOptions.itemsOnSide
+          //secondItems and otherItems
+          final.breakpoints[arrOfPoints[i]].secondItems = final.breakpoints[arrOfPoints[i]].secondItems ? { ...firstOptions.secondItems, ...final.breakpoints[arrOfPoints[i]].secondItems } : firstOptions.secondItems
+          final.breakpoints[arrOfPoints[i]].otherItems = final.breakpoints[arrOfPoints[i]].otherItems ? { ...firstOptions.otherItems, ...final.breakpoints[arrOfPoints[i]].otherItems } : firstOptions.otherItems
+
         } else {
+          /* adaptive and responsive */
           if (final.breakpoints[arrOfPoints[i]].adaptive || final.breakpoints[arrOfPoints[i]].responsive) {
             if (final.breakpoints[arrOfPoints[i]].adaptive) {
               final.breakpoints[arrOfPoints[i]].adaptive = final.breakpoints[arrOfPoints[i]].adaptive
@@ -138,11 +172,18 @@ export default class GnativeCarousel {
             final.breakpoints[arrOfPoints[i]].adaptive = final.breakpoints[arrOfPoints[i + 1]].adaptive
             final.breakpoints[arrOfPoints[i]].responsive = final.breakpoints[arrOfPoints[i + 1]].responsive
           }
+          /* adaptive and responsive */
+
+          //itemsOnSide
           final.breakpoints[arrOfPoints[i]].itemsOnSide = final.breakpoints[arrOfPoints[i]].itemsOnSide ? final.breakpoints[arrOfPoints[i]].itemsOnSide : final.breakpoints[arrOfPoints[i + 1]].itemsOnSide
+          //secondItems and otherItems
+          final.breakpoints[arrOfPoints[i]].secondItems = final.breakpoints[arrOfPoints[i]].secondItems ? { ...final.breakpoints[arrOfPoints[i + 1]].secondItems, ...final.breakpoints[arrOfPoints[i]].secondItems } : final.breakpoints[arrOfPoints[i + 1]].secondItems
+          final.breakpoints[arrOfPoints[i]].otherItems = final.breakpoints[arrOfPoints[i]].otherItems ? { ...final.breakpoints[arrOfPoints[i + 1]].otherItems, ...final.breakpoints[arrOfPoints[i]].otherItems } : final.breakpoints[arrOfPoints[i + 1]].otherItems
         }
       }
     }
     // console.log(final.breakpoints)
+    console.log(final)
     return final
   }
 
@@ -157,7 +198,15 @@ export default class GnativeCarousel {
     this.responsiveOptions = {
       responsive: !this.finalSettings.adaptive,
       adaptive: this.finalSettings.adaptive,
-      itemsOnSide: this.finalSettings.itemsOnSide
+      itemsOnSide: this.finalSettings.itemsOnSide,
+      secondItems: {
+        scale: this.finalSettings.secondItems.scale,
+        visibleWidth: this.finalSettings.secondItems.visibleWidth
+      },
+      otherItems: {
+        scale: this.finalSettings.otherItems.scale,
+        visibleWidth: this.finalSettings.otherItems.visibleWidth
+      }
     }
 
     // console.log(this.responsiveOptions)
@@ -273,14 +322,15 @@ export default class GnativeCarousel {
     const sumWidthOfStaticItem = staticItemWidth + staticItemBoxShadow
 
     //items container
+    const lazyLoad = typeof this.finalSettings.lazyLoad === 'number' ? this.finalSettings.lazyLoad : 0
     const mainElement = Math.floor(this.items.length / 2)
-    let itemWidth = this.items[mainElement].getBoundingClientRect().width
-    itemWidth = itemWidth - (itemWidth / 100 * 15)
+    let itemWidth = this.items[mainElement - this.finalSettings.itemsOnSide - lazyLoad].getBoundingClientRect().width
+    itemWidth = itemWidth - (itemWidth / 100 * ((1 - this.responsiveOptions.secondItems.scale) * 100))
 
-    let itemsContainerWidth = itemWidth / 100 * 60 + this.items[mainElement].getBoundingClientRect().width / 2
+    let itemsContainerWidth = itemWidth / 100 * this.responsiveOptions.secondItems.visibleWidth + this.items[mainElement - this.finalSettings.itemsOnSide - lazyLoad].getBoundingClientRect().width / 2
     for (let i = 0; i < this.responsiveOptions.itemsOnSide - 1; i++) {
-      itemWidth = itemWidth - (itemWidth / 100 * 5)
-      itemsContainerWidth += itemWidth / 100 * 15
+      itemWidth = itemWidth - (itemWidth / 100 * ((1 - this.responsiveOptions.otherItems.scale) * 100))
+      itemsContainerWidth += itemWidth / 100 * this.responsiveOptions.otherItems.visibleWidth
     }
     itemsContainerWidth = itemsContainerWidth * 2
 
@@ -371,12 +421,13 @@ export default class GnativeCarousel {
     const containerWidth = this.sizeOfSliderContainer.width
     const containerHeight = this.sizeOfSliderContainer.height
 
-    //getting any element
-    const itemWidth = this.items[0].getBoundingClientRect().width//?
-    const mainElement = Math.floor(this.items.length / 2)
-
 
     const lazyLoad = typeof this.finalSettings.lazyLoad === 'number' ? this.finalSettings.lazyLoad : 0
+    //getting any element
+    const mainElement = Math.floor(this.items.length / 2)
+    const itemWidth = this.items[mainElement - this.finalSettings.itemsOnSide - lazyLoad].getBoundingClientRect().width//?
+
+
     this.tableOfPositions[mainElement] = {
       width: itemWidth / containerWidth * 100, //?
       height: this.items[mainElement - this.finalSettings.itemsOnSide - lazyLoad].getBoundingClientRect().height / containerHeight * 100,
@@ -389,6 +440,8 @@ export default class GnativeCarousel {
     //todo rewrite it in the its own function
     this.isNode(this.btnsContainer) ? this.btnsContainer.style.zIndex = `${this.tableOfPositions[mainElement].zIndex + 1}` : false
 
+    // console.log(this.responsiveOptions)
+
     //first part of positions
     for (let i = mainElement - 1; i >= 0; i--) {
       let width
@@ -399,15 +452,15 @@ export default class GnativeCarousel {
 
       if (mainElement - 1 === i) {
         this.isNode(this.staticItem) ? this.staticItem.style.zIndex = mainElement + 1 : false
-        width = this.tableOfPositions[mainElement].width - (this.tableOfPositions[mainElement].width / 100 * 15)
-        height = this.tableOfPositions[mainElement].height - (this.tableOfPositions[mainElement].height / 100 * 15)
-        left = this.tableOfPositions[mainElement].left - (width / 100 * 60)
+        width = this.tableOfPositions[mainElement].width - (this.tableOfPositions[mainElement].width / 100 * ((1 - this.responsiveOptions.secondItems.scale) * 100))
+        height = this.tableOfPositions[mainElement].height - (this.tableOfPositions[mainElement].height / 100 * ((1 - this.responsiveOptions.secondItems.scale) * 100))
+        left = this.tableOfPositions[mainElement].left - (width / 100 * this.responsiveOptions.secondItems.visibleWidth)
         invert = 0.05
       }
       else if (mainElement - this.responsiveOptions.itemsOnSide <= i) {
-        width = this.tableOfPositions[i + 1].width - (this.tableOfPositions[i + 1].width / 100 * 5)
-        height = this.tableOfPositions[i + 1].height - (this.tableOfPositions[i + 1].height / 100 * 5)
-        left = this.tableOfPositions[i + 1].left - (width / 100 * 15)
+        width = this.tableOfPositions[i + 1].width - (this.tableOfPositions[i + 1].width / 100 * ((1 - this.responsiveOptions.otherItems.scale) * 100))
+        height = this.tableOfPositions[i + 1].height - (this.tableOfPositions[i + 1].height / 100 * ((1 - this.responsiveOptions.otherItems.scale) * 100))
+        left = this.tableOfPositions[i + 1].left - (width / 100 * this.responsiveOptions.otherItems.visibleWidth)
         invert = this.tableOfPositions[i + 1].invert + 0.05
       }
       else {
@@ -429,15 +482,15 @@ export default class GnativeCarousel {
       let invert
 
       if (mainElement + 1 === i) {
-        width = this.tableOfPositions[mainElement].width - (this.tableOfPositions[mainElement].width / 100 * 15)
-        height = this.tableOfPositions[mainElement].height - (this.tableOfPositions[mainElement].height / 100 * 15)
-        left = this.tableOfPositions[mainElement].left + this.tableOfPositions[mainElement].width - (width / 100 * 40)
+        width = this.tableOfPositions[mainElement].width - (this.tableOfPositions[mainElement].width / 100 * ((1 - this.responsiveOptions.secondItems.scale) * 100))
+        height = this.tableOfPositions[mainElement].height - (this.tableOfPositions[mainElement].height / 100 * ((1 - this.responsiveOptions.secondItems.scale) * 100))
+        left = this.tableOfPositions[mainElement].left + this.tableOfPositions[mainElement].width - (width / 100 * (100 - this.responsiveOptions.secondItems.visibleWidth))
         invert = 0.1
       }
       else if (mainElement + this.responsiveOptions.itemsOnSide >= i) {
-        width = this.tableOfPositions[i - 1].width - (this.tableOfPositions[i - 1].width / 100 * 5)
-        height = this.tableOfPositions[i - 1].height - (this.tableOfPositions[i - 1].height / 100 * 5)
-        left = this.tableOfPositions[i - 1].left + this.tableOfPositions[i - 1].width - (width / 100 * 85)
+        width = this.tableOfPositions[i - 1].width - (this.tableOfPositions[i - 1].width / 100 * ((1 - this.responsiveOptions.otherItems.scale) * 100))
+        height = this.tableOfPositions[i - 1].height - (this.tableOfPositions[i - 1].height / 100 * ((1 - this.responsiveOptions.otherItems.scale) * 100))
+        left = this.tableOfPositions[i - 1].left + this.tableOfPositions[i - 1].width - (width / 100 * (100 - this.responsiveOptions.otherItems.visibleWidth))
         invert = this.tableOfPositions[i - 1].invert + 0.1
       }
       else {
@@ -879,7 +932,6 @@ export default class GnativeCarousel {
       this.setLazyLoad()
       await this.firstLazyLoad()
     }
-
 
     //preparing the slider container
     //get data about the slider container and a parent and set correct height and width for them
