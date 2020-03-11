@@ -183,7 +183,7 @@ export default class GnativeCarousel {
       }
     }
     // console.log(final.breakpoints)
-    console.log(final)
+    // console.log(final)
     return final
   }
 
@@ -640,6 +640,8 @@ export default class GnativeCarousel {
 
         if (typeof this.finalSettings.lazyLoad === 'number')
           this.lazyLoadController(direction)
+
+        this.changeVirtMap(direction)
       }
 
       //variable for start and stop setInterval
@@ -862,7 +864,7 @@ export default class GnativeCarousel {
 
         this.lazyLoad(ind)
 
-        this.virtMap.push(this.virtMap.shift())
+        this.changeVirtMap(direction)
         resolve()
       } else {
         let ind = (this.virtMap[mainElem] - this.finalSettings.itemsOnSide - this.finalSettings.lazyLoad - 1) < 0 ?
@@ -871,7 +873,7 @@ export default class GnativeCarousel {
 
         this.lazyLoad(ind)
 
-        this.virtMap.unshift(this.virtMap.pop())
+        this.changeVirtMap(direction)
         resolve()
       }
     })
@@ -885,14 +887,19 @@ export default class GnativeCarousel {
     // console.log(this.virtMap, 'setVirtMap')
   }
 
+  changeVirtMap(direction) {
+    if (direction === 'toNext')
+      this.virtMap.push(this.virtMap.shift())
+    else
+      this.virtMap.unshift(this.virtMap.pop())
+  }
+
   //check and set a correct value for amount of items which need to lazy loading on click
   //and set a virtual map for lazy loading
   setLazyLoad() {
     if (this.finalSettings.lazyLoad === true || typeof this.finalSettings.lazyLoad === 'number') {
-      if (typeof typeof this.finalSettings.lazyLoad === 'number') {
+      if (typeof typeof this.finalSettings.lazyLoad === 'number')
         this.finalSettings.lazyLoad = Math.min(Math.max(this.finalSettings.lazyLoad, 1), (this.items.length - this.finalSettings.itemsOnSide * 2 + 1))
-      }
-      this.setVirtMap()
     }
   }
 
@@ -927,7 +934,7 @@ export default class GnativeCarousel {
     // console.log('createSlider')
 
     this.buildMainElement()
-
+    this.setVirtMap()
     if (this.lazyLoad === true || typeof this.finalSettings.lazyLoad === 'number') {
       this.setLazyLoad()
       await this.firstLazyLoad()
@@ -953,6 +960,8 @@ export default class GnativeCarousel {
 
     //then we set event listeners
     this.setEventListeners()
+
+    return this
   }
 
   async stackWatcher() {
@@ -1115,7 +1124,9 @@ export default class GnativeCarousel {
   }
 
   mouseMove = async (e) => {
-    const width = this.items[Math.floor(this.items.length / 2)].getBoundingClientRect().width
+    const lazyLoad = typeof this.finalSettings.lazyLoad === 'number' ? this.finalSettings.lazyLoad : 0
+    const mainElement = Math.floor(this.items.length / 2)
+    const width = this.items[mainElement - this.finalSettings.itemsOnSide - lazyLoad].getBoundingClientRect().width
     const stepInPX = width / (this.timeOptions.animationTime / this.timeOptions.interval)
 
     if (stepInPX <= Math.abs(this.startPosition - e.clientX)) {
@@ -1156,7 +1167,7 @@ export default class GnativeCarousel {
     }
   }
 
-  mouseUp = async () => {
+  mouseUp = async (e) => {
     this.sliderContainer.removeEventListener('mousemove', this.mouseMove)
     this.sliderContainer.removeEventListener('mouseleave', this.mouseUp)
     this.sliderContainer.removeEventListener('mouseup', this.mouseUp)
@@ -1168,4 +1179,29 @@ export default class GnativeCarousel {
     }
   }
   /*== events for responsive swipe on mouse==*/
+
+  onclick(elem, func) {
+    if (this.isNode(elem)) {
+      this.sliderContainer.addEventListener('mousedown', (e) => {
+        let mouseDownPos = e.clientX
+
+        const mouseUpFunc = (e) => {
+
+          if (elem.isEqualNode(e.target))
+            if (mouseDownPos === e.clientX)
+              func()
+
+          this.sliderContainer.removeEventListener('mouseup', mouseUpFunc)
+        }
+
+        this.sliderContainer.addEventListener('mouseup', mouseUpFunc)
+      })
+    } else {
+      console.error('problem with your nodelemnt which you provided to onclick')
+    }
+  }
+
+  getActiveIndex() {
+    return this.virtMap[Math.floor(this.items.length / 2)]
+  }
 }

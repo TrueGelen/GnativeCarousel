@@ -59,59 +59,59 @@ new GnativeCarousel({
   
 ````js
   this.defaultSettings = {
-			//number
-			animationTime: 300,
-			//string. is required. '.someSection .someClass' 
-			sliderContainer: undefined,
-			//string. is required. '.someSection .someClass' 
-			itemsContainer: undefined,
-			//string. '.someSection .someClass' 
-			staticItem: undefined,
-			//string. '.someSection .someClass' 
-			btnsContainer: undefined,
-			//string. '.someSection .someClass' 
-			btnNext: undefined,
-			//string. '.someSection .someClass' 
-			btnPrev: undefined,
-			//object
-			mainElement: {
-				//string
-				class: undefined,
-				//boolean
-				keepOrder: false
-			},
-			//number
-			itemsOnSide: 3,
-			//boolean (if adaptive and responsive are true then actually it will be responsive: true)
-			adaptive: false,
-			//boolean
-			responsive: true,
-			//object {'1100': { itemsOnSide: 4, adaptive: true},
-			//				'960': { itemsOnSide: 3, responsive: true,  otherItems:{...}}, 
-			//				'768': { itemsOnSide: 2, secondItems:{...}, otherItems:{...} }...
-			//if you do not define any of these keys, it will be assigned the previous value
-      breakpoints: undefined,
+    //number
+    animationTime: 300,
+    //string. is required. '.someSection .someClass' 
+    sliderContainer: undefined,
+    //string. is required. '.someSection .someClass' 
+    itemsContainer: undefined,
+    //string. '.someSection .someClass' 
+    staticItem: undefined,
+    //string. '.someSection .someClass' 
+    btnsContainer: undefined,
+    //string. '.someSection .someClass' 
+    btnNext: undefined,
+    //string. '.someSection .someClass' 
+    btnPrev: undefined,
+    //object
+    mainElement: {
+      //string
+      class: undefined,
+      //boolean
+      keepOrder: false
+    },
+    //number
+    itemsOnSide: 3,
+    //boolean (if adaptive and responsive are true then actually it will be responsive: true)
+    adaptive: false,
+    //boolean
+    responsive: true,
+    //object {'1100': { itemsOnSide: 4, adaptive: true},
+    //				'960': { itemsOnSide: 3, responsive: true,  otherItems:{...}}, 
+    //				'768': { itemsOnSide: 2, secondItems:{...}, otherItems:{...} }...
+    //if you do not define any of these keys, it will be assigned the previous value
+    breakpoints: undefined,
+    //number
+    lazyLoad: undefined,
+    //object
+    secondItems: {
       //number
-      lazyLoad: undefined,
-      //object
-      secondItems: {
-        //number
-        //from a main slide
-        scale: 0.85,
-        //number
-        //it is a percentage of the main slide
-        visibleWidth: 60
-      },
-      //object
-      otherItems: {
-        //number
-        //from a slide which is before this
-        scale: 0.95,
-        //number
-        //it is a percentage of the slide which is before this
-        visibleWidth: 15
-      }
-		}
+      //from a main slide
+      scale: 0.85,
+      //number
+      //it is a percentage of the main slide
+      visibleWidth: 60
+    },
+    //object
+    otherItems: {
+      //number
+      //from a slide which is before this
+      scale: 0.95,
+      //number
+      //it is a percentage of the slide which is before this
+      visibleWidth: 15
+    }
+	}
   ````
   
   ### If you want to have more buttons, you can use method "doSlide(nodeElement, 'direction')":
@@ -149,3 +149,32 @@ If you want to use the lazy loading that you should add the "Glazy" class for a 
 </div>
 ````
 Also you need to add `lazyLoad` to settings. The example `new GnativeCarousel({...lazyLoad: 1})` and the value has to be a number.
+
+Other abilities
+-------------------------
+To get a correct click you can use `onclick(elem, func)` method.
+
+#### The example JS:
+  ````js
+    const slider = new GnativeCarousel({...})
+    slider.createSlider()
+
+    const some = document.querySelectorAll('.items')
+
+    function yourFunc() {
+      //
+    }
+
+    [...some].forEach(elem => {
+      slider.onclick(elem, test)
+    })
+  ````
+
+  To get index of active element you can use `getActiveIndex()` method.
+
+  ````js
+    const slider = new GnativeCarousel({...})
+    slider.createSlider()
+
+    document.querySelectorAll('body').addEventListener('click',() => console.log(slider.getActiveIndex()))
+  ````
