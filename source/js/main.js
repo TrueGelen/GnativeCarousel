@@ -34,6 +34,7 @@ window.addEventListener('load', () => {
       '768': {
         itemsOnSide: 2,
         responsive: true,
+        animationTime: 75,
         secondItems: {
           scale: 0.9,
           visibleWidth: 30

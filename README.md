@@ -86,7 +86,7 @@ new GnativeCarousel({
     adaptive: false,
     //boolean
     responsive: true,
-    //object {'1100': { itemsOnSide: 4, adaptive: true},
+    //object {'1100': { itemsOnSide: 4, animationTime: 200, adaptive: true},
     //				'960': { itemsOnSide: 3, responsive: true,  otherItems:{...}}, 
     //				'768': { itemsOnSide: 2, secondItems:{...}, otherItems:{...} }...
     //if you do not define any of these keys, it will be assigned the previous value
@@ -114,7 +114,7 @@ new GnativeCarousel({
 	}
   ````
   
-  ### If you want to have more buttons, you can use method "doSlide(nodeElement, 'direction')":
+  ### If you want to have more buttons, you can use a method "doSlide(nodeElement, 'direction')":
   #### The example:
   
   ````js
@@ -130,7 +130,7 @@ new GnativeCarousel({
 
 Lazy loading
 -------------------------
-If you want to use the lazy loading that you should add the "Glazy" class for a slide or elements which are inner of slide.
+If you want to use the lazy loading that you should add the "Glazy" class for a slide or elements which are inner of the slide.
 
 #### The example HTML:
  ````html
@@ -170,7 +170,7 @@ To get a correct click you can use `onclick(elem, func)` method.
     })
   ````
 
-  To get index of active element you can use `getActiveIndex()` method.
+  To get an index of an active element you can use `getActiveIndex()` method.
 
   ````js
     const slider = new GnativeCarousel({...})
