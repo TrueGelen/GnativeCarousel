@@ -119,13 +119,13 @@ new GnativeCarousel({
   
   ````js
 let slider = new GnativeCarousel({...})
-  slider.createSlider()
+	slider.createSlider()
 
-  const secondaryBtnNext = document.querySelector('.someSection .otherButtons .otherButtons_button-next')
-  const secondaryBtnPrev = document.querySelector('.someSection .otherButtons .otherButtons_button-prev')
+	const secondaryBtnNext = document.querySelector('.someSection .otherButtons .otherButtons_button-next')
+	const secondaryBtnPrev = document.querySelector('.someSection .otherButtons .otherButtons_button-prev')
 
-  slider.doSlide(secondaryBtnNext, 'next')
-  slider.doSlide(secondaryBtnPrev, 'prev')
+	slider.doSlide(secondaryBtnNext, 'next')
+	slider.doSlide(secondaryBtnPrev, 'prev')
   ````
 
 Lazy loading
@@ -146,6 +146,7 @@ If you want to use the lazy loading that you should add the "Glazy" class for a 
       <div>
           <img data-src="img/slider2/slider2__img2.jpg" alt="card" class="Glazy">
       </div>
+	</div>
 </div>
 ````
 Also you need to add `lazyLoad` to settings. The example `new GnativeCarousel({...lazyLoad: 1})` and the value has to be a number.
