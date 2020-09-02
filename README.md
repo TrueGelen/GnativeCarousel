@@ -6,25 +6,25 @@ Usage
 #### The example js:
 ````js
 new GnativeCarousel({
-		mainElement: {
-			class: 'first',
-			keepOrder: true
-		},
-		animationTime: 300,
-		sliderContainer: '.firstExample .GnativeCarousel',
-		itemsContainer: '.firstExample .GnativeCarousel .GnativeCarousel__itemsContainer',
-		staticItem: '.firstExample.GnativeCarousel .GnativeCarousel__staticItem',
-		btnsContainer: '.firstExample .GnativeCarousel .GnativeCarousel__buttons',
-		btnNext: '.firstExample .GnativeCarousel .GnativeCarousel__buttons .GnativeCarousel__next',
-		btnPrev: '.firstExample .GnativeCarousel .GnativeCarousel__buttons .GnativeCarousel__prev',
-		itemsOnSide: 5,
-		adaptive: true,
-		breakpoints: {
-			'1100': { itemsOnSide: 4 },
-			'960': { itemsOnSide: 3, responsive: true },
-			'768': { itemsOnSide: 2 },
-		}
-	}).createSlider()
+	mainElement: {
+		class: 'first',
+		keepOrder: true
+	},
+	animationTime: 300,
+	sliderContainer: '.firstExample .GnativeCarousel',
+	itemsContainer: '.firstExample .GnativeCarousel .GnativeCarousel__itemsContainer',
+	staticItem: '.firstExample.GnativeCarousel .GnativeCarousel__staticItem',
+	btnsContainer: '.firstExample .GnativeCarousel .GnativeCarousel__buttons',
+	btnNext: '.firstExample .GnativeCarousel .GnativeCarousel__buttons .GnativeCarousel__next',
+	btnPrev: '.firstExample .GnativeCarousel .GnativeCarousel__buttons .GnativeCarousel__prev',
+	itemsOnSide: 5,
+	adaptive: true,
+	breakpoints: {
+		'1100': { itemsOnSide: 4 },
+		'960': { itemsOnSide: 3, responsive: true },
+		'768': { itemsOnSide: 2 },
+	}
+}).createSlider()
   ````
   
   #### The example HTML:
@@ -111,21 +111,21 @@ new GnativeCarousel({
       //it is a percentage of the slide which is before this
       visibleWidth: 15
     }
-	}
+  }
   ````
   
   ### If you want to have more buttons, you can use a method "doSlide(nodeElement, 'direction')":
   #### The example:
   
   ````js
-  let slider = new GnativeCarousel({...})
-	slider.createSlider()
+let slider = new GnativeCarousel({...})
+slider.createSlider()
 
-	const secondaryBtnNext = document.querySelector('.someSection .otherButtons .otherButtons_button-next')
-	const secondaryBtnPrev = document.querySelector('.someSection .otherButtons .otherButtons_button-prev')
+const secondaryBtnNext = document.querySelector('.someSection .otherButtons .otherButtons_button-next')
+const secondaryBtnPrev = document.querySelector('.someSection .otherButtons .otherButtons_button-prev')
 
-	slider.doSlide(secondaryBtnNext, 'next')
-	slider.doSlide(secondaryBtnPrev, 'prev')
+slider.doSlide(secondaryBtnNext, 'next')
+slider.doSlide(secondaryBtnPrev, 'prev')
   ````
 
 Lazy loading
@@ -146,6 +146,7 @@ If you want to use the lazy loading that you should add the "Glazy" class for a 
       <div>
           <img data-src="img/slider2/slider2__img2.jpg" alt="card" class="Glazy">
       </div>
+	</div>
 </div>
 ````
 Also you need to add `lazyLoad` to settings. The example `new GnativeCarousel({...lazyLoad: 1})` and the value has to be a number.
