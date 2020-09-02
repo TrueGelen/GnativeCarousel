@@ -39,11 +39,9 @@ a {
 }
 
 .container {
-  border: 1px solid black;
+  // border: 1px solid black;
 	@include wrapper();
   position: relative;
-  // overflow: hidden;
-  // padding: 100px 0;
 }
 
 //slider--------------------
@@ -60,7 +58,7 @@ a {
 }
 
 .firstExample__slider{
-  border: 1px solid white;
+  // border: 1px solid white;
 	/* position: absolute;
 	top: 50%;
 	left: 50%;
