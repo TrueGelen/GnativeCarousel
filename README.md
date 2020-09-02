@@ -111,21 +111,21 @@ new GnativeCarousel({
       //it is a percentage of the slide which is before this
       visibleWidth: 15
     }
-	}
+  }
   ````
   
   ### If you want to have more buttons, you can use a method "doSlide(nodeElement, 'direction')":
   #### The example:
   
   ````js
-  let slider = new GnativeCarousel({...})
-	slider.createSlider()
+let slider = new GnativeCarousel({...})
+  slider.createSlider()
 
-	const secondaryBtnNext = document.querySelector('.someSection .otherButtons .otherButtons_button-next')
-	const secondaryBtnPrev = document.querySelector('.someSection .otherButtons .otherButtons_button-prev')
+  const secondaryBtnNext = document.querySelector('.someSection .otherButtons .otherButtons_button-next')
+  const secondaryBtnPrev = document.querySelector('.someSection .otherButtons .otherButtons_button-prev')
 
-	slider.doSlide(secondaryBtnNext, 'next')
-	slider.doSlide(secondaryBtnPrev, 'prev')
+  slider.doSlide(secondaryBtnNext, 'next')
+  slider.doSlide(secondaryBtnPrev, 'prev')
   ````
 
 Lazy loading
