@@ -58,9 +58,9 @@ new GnativeCarousel({
 #### (IMPORTANT!) To swape be smooth you should use the "transform: translateZ" hack for your css slide style:
   ````css
 GnativeCarousel__itemsContainer img{
-  //...
-  transform: translateY(-50%) translateZ(.01px);
-  //...
+	/*...*/
+	transform: translateY(-50%) translateZ(.01px);
+	/*...*/
 }
 ````
   
