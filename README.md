@@ -59,7 +59,7 @@ new GnativeCarousel({
   ````css
 GnativeCarousel__itemsContainer img{
 	/*...*/
-	transform: translateY(-50%) translateZ(.01px);
+	transform: translateY(-50%) translateZ(0);
 	/*...*/
 }
 ````
